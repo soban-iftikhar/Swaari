@@ -1,198 +1,186 @@
 # Swaari Backend
 
-Node.js/Express REST API server with MongoDB for the Swaari application.
+Node.js + Express REST API for Swaari with MongoDB and JWT auth.
 
 ## Tech Stack
 
-- **Runtime**: Node.js
-- **Framework**: Express.js v5
-- **Database**: MongoDB with Mongoose v9
-- **Authentication**: JSON Web Tokens (jsonwebtoken)
-- **Password Security**: bcrypt
-- **Validation**: express-validator
-- **Environment**: dotenv
+- Node.js
+- Express.js v5
+- MongoDB + Mongoose
+- JWT (`jsonwebtoken`)
+- Password hashing (`bcrypt`)
+- Cookie parsing (`cookie-parser`)
+- Request validation (`express-validator`)
+- Env management (`dotenv`)
 
-## Project Structure
+## Folder Structure
 
 ```
 Backend/
-├── app.js              # Main application entry point
-├── package.json        # Dependencies and scripts
+├── app.js
+├── package.json
 ├── configs/
-│   └── db.js          # Database connection configuration
+│   └── db.js
 ├── controllers/
-│   └── userController.js  # User request handlers
+│   └── userController.js
+├── middlewares/
+│   └── AuthMiddleware.js
 ├── models/
-│   └── User.js        # User model schema
+│   └── User.js
+│   └── BlackListToken.js
 ├── routes/
-│   └── userRoutes.js  # User API routes
+│   └── userRoutes.js
 └── services/
-    └── userService.js # User business logic
+    └── userService.js
 ```
 
-## Installation
+## Setup
+
+1. Install dependencies
 
 ```bash
 npm install
 ```
 
-## Environment Variables
-
-Create a `.env` file in the Backend directory:
+2. Create `.env` in `Backend/`
 
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/swaari
-ACCESS_TOKEN_SECRET=your_secure_access_token_secret_here
-REFRESH_TOKEN_SECRET=your_secure_refresh_token_secret_here
+MONGO_URI=mongodb://127.0.0.1:27017
+DB_NAME=Swaari
+ACCESS_TOKEN_SECRET=your_access_token_secret
+REFRESH_TOKEN_SECRET=your_refresh_token_secret
 ```
 
-**Generate secure secrets:**
-```bash
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-```
+Notes:
+- You can also use `MONGODB_URI` instead of `MONGO_URI`.
+- `DB_NAME` is important to avoid connecting to MongoDB default `test` DB.
 
-## Running the Server
+## Run
 
-### Development Mode (with auto-restart)
+Development:
+
 ```bash
 npm run dev
 ```
 
-### Production Mode
+Production:
+
 ```bash
 npm start
 ```
 
-Server will run on `http://localhost:5000` (or the PORT specified in .env)
+Base URL: `http://localhost:5000`
 
-## API Endpoints
+## API Routes
 
-### User Routes
-Base URL: `/api/users`
+Base path: `/api/users`
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/register` | Register a new user | No |
+| Method | Route | Description | Auth |
+|---|---|---|---|
+| POST | `/register` | Register new user | No |
 | POST | `/login` | Login user | No |
-| GET | `/profile` | Get user profile | Yes |
-| [Add more routes as implemented] | | | |
+| GET | `/profile` | Current user profile | Yes |
+| GET | `/logout` | Logout current user | Yes |
 
-## User Model Schema
+## Request Bodies (Postman)
 
-```javascript
-{
-  fullname: {
-    firstname: String,  // min 3 chars, required
-    lastname: String    // min 3 chars, required
-  },
-  email: String,        // unique, lowercase, min 5 chars
-  password: String,     // hashed, min 8 chars
-  socketId: String,     // for real-time features
-  refreshToken: String  // for token refresh mechanism
-}
-```
+### Register
 
-## Authentication
+`POST /api/users/register`
 
-This API uses JWT-based authentication with two token types:
-
-### Access Token
-- Short-lived (1 hour)
-- Used for authenticating API requests
-- Sent in Authorization header: `Bearer <token>`
-
-### Refresh Token
-- Long-lived (7 days)
-- Stored in database
-- Used to obtain new access tokens
-
-### Password Security
-- Passwords are hashed using bcrypt with salt rounds of 10
-- Never stored in plain text
-- Password field not returned in queries by default (`select: false`)
-
-## API Request/Response Examples
-
-### Register User
-```bash
-POST /api/users/register
-Content-Type: application/json
-
-{
-  "fullname": {
-    "firstname": "John",
-    "lastname": "Doe"
-  },
-  "email": "john@example.com",
-  "password": "securePassword123"
-}
-```
-
-### Login User
-```bash
-POST /api/users/login
-Content-Type: application/json
-
-{
-  "email": "john@example.com",
-  "password": "securePassword123"
-}
-```
-
-Response:
 ```json
 {
+  "fullName": {
+    "firstName": "Soban",
+    "lastName": "Iftikhar"
+  },
+  "email": "soban@example.com",
+  "password": "Password123"
+}
+```
+
+### Login
+
+`POST /api/users/login`
+
+```json
+{
+  "email": "soban@example.com",
+  "password": "Password123"
+}
+```
+
+## Auth Behavior
+
+- Access token expiry: `1h`
+- Refresh token expiry: `7d`
+- `refreshToken` is saved in DB
+- Login also sets `accessToken` as an HTTP-only cookie
+- Protected routes expect:
+  - `Authorization: Bearer <accessToken>` header
+  - (or access token cookie if configured)
+
+Logout behavior:
+- Clears `accessToken` cookie
+- Stores current access token in `BlackListToken` collection
+
+## Typical Success Response (Register/Login)
+
+```json
+{
+  "accessToken": "...",
+  "refreshToken": "...",
   "user": {
     "_id": "...",
     "fullname": {
-      "firstname": "John",
-      "lastname": "Doe"
+      "firstname": "Soban",
+      "lastname": "Iftikhar"
     },
-    "email": "john@example.com"
-  },
-  "accessToken": "...",
-  "refreshToken": "..."
+    "email": "soban@example.com"
+  }
 }
 ```
 
-## Database Connection
-
-The database connection is established using Mongoose and configured in `configs/db.js`. The connection is initialized before the Express server starts.
-
-## Error Handling
-
-- Validation errors return 400 status
-- Authentication errors return 401 status
-- Not found errors return 404 status
-- Server errors return 500 status
-
-[Add more details as error handling is implemented]
+`password`, `refreshToken`, and `__v` are removed from returned `user`.
 
 ## Validation Rules
 
-### User Registration
-- firstname: minimum 3 characters
-- lastname: minimum 3 characters
-- email: valid email format, minimum 5 characters, unique
-- password: minimum 8 characters
+Register:
+- `fullName.firstName` required
+- `fullName.lastName` required
+- `email` must be valid
+- `password` minimum 8 chars
 
-## Development Notes
+Login:
+- `email` must be valid
+- `password` minimum 8 chars
 
-- Uses ES6 modules (`"type": "module"` in package.json)
-- Follows MVC architecture pattern
-- Service layer handles business logic
-- Controllers handle HTTP requests/responses
-- Routes define API endpoints
+## Error Responses
 
-## Testing
+- `400` validation / bad request
+- `401` invalid credentials / unauthorized
+- `500` internal server error
 
-[Add testing information as tests are implemented]
+## Postman Quick Test
 
-## Deployment
+1. Register with `POST /api/users/register`
+2. Login with `POST /api/users/login`
+3. Copy `accessToken` from response
+4. Call protected routes with header:
 
-[Add deployment instructions here]
+```text
+Authorization: Bearer <accessToken>
+```
+
+5. Test logout using `GET /api/users/logout`
+
+## Notes
+
+- Uses ES modules (`"type": "module"`).
+- DB connection configured in `configs/db.js` with explicit DB name.
+- Auth middleware is in `middlewares/AuthMiddleware.js`.
 
 ---
 
-**Last Updated**: February 28, 2026
+**Last Updated:** February 28, 2026
