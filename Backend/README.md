@@ -22,16 +22,21 @@ Backend/
 ├── configs/
 │   └── db.js
 ├── controllers/
-│   └── userController.js
+│   ├── userController.js
+│   └── driverController.js
 ├── middlewares/
 │   └── AuthMiddleware.js
 ├── models/
-│   └── User.js
+│   ├── User.js
+│   ├── Driver.js
 │   └── BlackListToken.js
 ├── routes/
-│   └── userRoutes.js
-└── services/
-    └── userService.js
+│   ├── userRoutes.js
+│   └── driverRoutes.js
+├── services/
+│   └── authService.js
+└── utils/
+    └── authPlugin.js
 ```
 
 ## Setup
@@ -74,6 +79,7 @@ Base URL: `http://localhost:5000`
 
 ## API Routes
 
+### User Routes
 Base path: `/api/users`
 
 | Method | Route | Description | Auth |
@@ -83,19 +89,63 @@ Base path: `/api/users`
 | GET | `/profile` | Current user profile | Yes |
 | GET | `/logout` | Logout current user | Yes |
 
-## Request Bodies (Postman)
-
-### Register
+### Driver Routes
+BaseUser Register
 
 `POST /api/users/register`
 
 ```json
 {
   "fullName": {
-    "firstName": "Soban",
-    "lastName": "Iftikhar"
+    "firstName": "John",
+    "lastName": "Doe"
   },
-  "email": "soban@example.com",
+  "email": "john@example.com",
+  "password": "Password123"
+}
+```
+
+### User Login
+
+`POST /api/users/login`
+
+```json
+{
+  "email": "john@example.com",
+  "password": "Password123"
+}
+```
+
+### Driver Register
+
+`POST /api/drivers/register`
+
+```json
+{
+  "fullName": {
+    "firstName": "Ahmed",
+    "lastName": "Khan"
+  },
+  "email": "driver@example.com",
+  "password": "Password123",
+  "vehicle": {
+    "color": "white",
+    "licensePlate": "ABC-123",
+    "make": "Suzuki",
+    "year": 2023,
+    "capacity": 4,
+    "type": "mini"
+  }
+}
+```
+
+### Driver Login
+
+`POST /api/drivers/login`
+
+```json
+{
+  "email": "driver@example.com",
   "password": "Password123"
 }
 ```
@@ -130,22 +180,46 @@ Logout behavior:
 ```json
 {
   "accessToken": "...",
-  "refreshToken": "...",
-  "user": {
-    "_id": "...",
-    "fullname": {
-      "firstname": "Soban",
-      "lastname": "Iftikhar"
-    },
-    "email": "soban@example.com"
-  }
-}
+  "refreshToUser: `POST /api/users/register`
+2. Login User: `POST /api/users/login`
+3. Copy `accessToken` from response
+4. Call protected routes with header:
+
+```text
+Authorization: Bearer <accessToken>
 ```
 
-`password`, `refreshToken`, and `__v` are removed from returned `user`.
+5. Get Profile: `GET /api/users/profile`
+6. Logout: `GET /api/users/logout`
 
-## Validation Rules
+Same flow works for `/api/drivers/*` endpoints.
 
+## Architecture
+
+### Services
+- **authService**: Generic auth logic (register, login, logout) for any user type
+- Reusable for User, Driver, Admin, etc.
+
+### Utils
+- **authPlugin**: Mongoose plugin adding JWT token generation and password hashing
+- Applied to both User and Driver models
+- Eliminates code duplication
+
+### Key Features
+- ✅ Reusable auth logic (User & Driver share same authService)
+- ✅ Mongoose plugin pattern for models
+- ✅ JWT tokens with secure HTTP-only cookies
+- ✅ Token blacklisting on logout
+- ✅ Protected routes with auth middleware
+- ✅ Request validation with express-validator
+- ✅ ES modules throughout
+
+## Notes
+
+- Uses ES modules (`"type": "module"`).
+- DB connection configured in `configs/db.js` with explicit DB name.
+- Auth middleware is in `middlewares/AuthMiddleware.js`.
+- Vehicle types: bike, auto_rickshaw, mini, sedan, suv, van
 Register:
 - `fullName.firstName` required
 - `fullName.lastName` required

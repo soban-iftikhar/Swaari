@@ -1,4 +1,5 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+import authPlugin from "../utils/authPlugin.js";
 
 const driverSchema = new mongoose.Schema({
   fullname: {
@@ -43,11 +44,6 @@ const driverSchema = new mongoose.Schema({
       required: true,
       unique: true,
     },
-    model: {
-      type: String,
-      required: true,
-    },
-
     make: {
       type: String,
       required: true,
@@ -77,6 +73,21 @@ const driverSchema = new mongoose.Schema({
   socketId: {
     type: String,
   },
+  refreshToken: {
+    type: String,
+    default: null,
+  },
+}, {
+  toJSON: {
+    transform(doc, ret) {
+      delete ret.__v;
+      return ret;
+    }
+  }
 });
 
-module.exports = mongoose.model("Driver", driverSchema);
+// Apply auth plugin
+driverSchema.plugin(authPlugin);
+
+const Driver = mongoose.model("Driver", driverSchema);
+export default Driver;
