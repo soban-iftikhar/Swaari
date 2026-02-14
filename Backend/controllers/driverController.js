@@ -49,7 +49,7 @@ const getDriverProfile = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};
+};kkk
 
 // Controller function to handle driver logout
 const logoutDriver = async (req, res) => {
