@@ -1,4 +1,5 @@
 import { ArrowRight } from 'lucide-react'
+import {Link} from 'react-router-dom'
 
 const Home = () => {
   return (
@@ -15,10 +16,10 @@ const Home = () => {
 
       {/* Button - fixed to absolute bottom */}
       <div className="absolute bottom-3 left-6 right-6 flex justify-center">
-        <button className="flex items-center justify-center gap-2 rounded-full bg-yellow-400 hover:bg-yellow-500 px-4 py-2 text-lg font-bold text-gray-900 shadow-lg transition-all duration-300 transform hover:scale-110 hover:shadow-2xl whitespace-nowrap">
+        <Link to="/get-started" className="flex items-center justify-center gap-2 rounded-full bg-yellow-400 hover:bg-yellow-500 px-4 py-2 text-lg font-bold text-gray-900 shadow-lg transition-all duration-300 transform hover:scale-110 hover:shadow-2xl whitespace-nowrap">
           Get Started
-          <ArrowRight className="h-6 w-6 flex-shrink-0" />
-        </button>
+          <ArrowRight className="h-6 w-6 shrink-0" />
+        </Link>
       </div>
     </div>
   )
