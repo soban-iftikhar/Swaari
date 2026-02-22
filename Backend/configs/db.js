@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 function connectDB() {
-  mongoose
+  return mongoose
     .connect(process.env.MONGO_URI, {
     })
     .then(() => {
