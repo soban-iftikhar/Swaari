@@ -1,7 +1,5 @@
-import Driver from "../models/Driver.js";
-import authService from "../services/authService.js";
+import driverService from "../services/driverService.js";
 import { validationResult } from "express-validator";
-
 
 // Controller function to handle driver registration
 const registerDriver = async (req, res) => {
@@ -11,13 +9,12 @@ const registerDriver = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const result = await authService.register(Driver, req.body);
+    const result = await driverService.registerDriver(req.body);
     res.status(201).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
-
 
 // Controller function to handle driver login
 const loginDriver = async (req, res) => {
@@ -28,7 +25,7 @@ const loginDriver = async (req, res) => {
     }
 
     const { email, password } = req.body;
-    const result = await authService.login(Driver, email, password);
+    const result = await driverService.loginDriver(email, password);
 
     // Set access token in HTTP-only cookie
     res.cookie("accessToken", result.accessToken, {
@@ -47,7 +44,7 @@ const loginDriver = async (req, res) => {
 // Controller function to get driver profile (protected route)
 const getDriverProfile = async (req, res) => {
   try {
-    const driver = req.driver; // Driver is attached to request by auth middleware
+    const driver = await driverService.getDriverProfile(req.driver);
     res.status(200).json({ driver });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -58,7 +55,7 @@ const getDriverProfile = async (req, res) => {
 const logoutDriver = async (req, res) => {
   try {
     const token = req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
-    await authService.logout(token);
+    await driverService.logoutDriver(token);
     res.clearCookie("accessToken");
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
