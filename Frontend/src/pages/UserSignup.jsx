@@ -3,12 +3,14 @@ import { Link } from "react-router-dom";
 
 const UserSignup = () => {
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
   });
   const [errors, setErrors] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
   });
@@ -16,9 +18,9 @@ const UserSignup = () => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const nameRegex = /^[a-zA-Z\s]{2,}$/;
 
-  const validateName = (name) => {
-    if (!name.trim()) return "Name is required";
-    if (!nameRegex.test(name)) return "Name must be at least 2 characters and contain only letters";
+  const validateName = (name, label) => {
+    if (!name.trim()) return `${label} is required`;
+    if (!nameRegex.test(name)) return `${label} must be at least 2 characters and contain only letters`;
     return "";
   };
 
@@ -42,8 +44,10 @@ const UserSignup = () => {
     setFormData({ ...formData, [name]: value });
 
     let error = "";
-    if (name === "name") {
-      error = validateName(value);
+    if (name === "firstName") {
+      error = validateName(value, "First name");
+    } else if (name === "lastName") {
+      error = validateName(value, "Last name");
     } else if (name === "email") {
       error = validateEmail(value);
     } else if (name === "password") {
@@ -55,13 +59,15 @@ const UserSignup = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const nameError = validateName(formData.name);
+    const firstNameError = validateName(formData.firstName, "First name");
+    const lastNameError = validateName(formData.lastName, "Last name");
     const emailError = validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
 
-    if (nameError || emailError || passwordError) {
+    if (firstNameError || lastNameError || emailError || passwordError) {
       setErrors({
-        name: nameError,
+        firstName: firstNameError,
+        lastName: lastNameError,
         email: emailError,
         password: passwordError,
       });
@@ -94,20 +100,39 @@ const UserSignup = () => {
           <h2 className="text-3xl font-bold text-white mb-6 text-center">User Signup</h2>
 
           <form className="flex flex-col gap-3" action="/user/signup" method="POST" onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-2">
-              <label htmlFor="name" className="text-white font-semibold">
-                Full Name:
+            <div className="grid grid-cols-2 gap-3">
+              <label htmlFor="firstName" className="text-white font-semibold">
+                First Name:
               </label>
+              <label htmlFor="lastName" className="text-white font-semibold">
+                Last Name:
+              </label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <input
                 type="text"
-                id="name"
-                name="name"
-                value={formData.name}
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
                 onChange={handleChange}
-                placeholder="John Doe"
+                placeholder="John"
                 className="px-4 text-white py-3 rounded-lg bg-white/10 border border-white/15 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
-              {errors.name && <span className="text-red-400 text-sm">{errors.name}</span>}
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                placeholder="Doe"
+                className="px-4 text-white py-3 rounded-lg bg-white/10 border border-white/15 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 min-h-5">
+              <span className="text-red-400 text-sm">{errors.firstName}</span>
+              <span className="text-red-400 text-sm">{errors.lastName}</span>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -141,6 +166,9 @@ const UserSignup = () => {
               />
               {errors.password && <span className="text-red-400 text-sm">{errors.password}</span>}
             </div>
+
+            <input type="hidden" name="fullName.firstName" value={formData.firstName} />
+            <input type="hidden" name="fullName.lastName" value={formData.lastName} />
 
             <button
               type="submit"

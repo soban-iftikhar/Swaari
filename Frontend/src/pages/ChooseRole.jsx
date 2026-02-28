@@ -22,37 +22,29 @@ const ChooseRole = () => {
             <h1 className="text-3xl font-bold text-white">Choose Your Role</h1>
           </div>
           <div className="flex gap-8 justify-center w-full">
-            <button>
-              {" "}
-              <Link
-                to="/driver/login"
-                className="px-8 py-3 bg-orange-400/75 text-black text-2xl  rounded-lg hover:bg-orange-600 transition font-semibold shadow-lg flex items-center gap-2"
-              >
-                Driver
-              </Link>
-            </button>
-            <button>
-              {" "}
-              <Link
-                to="/user/login"
-                className="px-8 py-3 bg-pink-400/75 text-black text-2xl rounded-lg hover:bg-pink-600 transition font-semibold shadow-lg flex items-center gap-2"
-              >
-                Rider
-              </Link>
-            </button>
+            <Link
+              to="/driver/login"
+              className="px-8 py-3 bg-orange-400/75 text-black text-2xl rounded-lg hover:bg-orange-600 transition font-semibold shadow-lg flex items-center gap-2"
+            >
+              Driver
+            </Link>
+            <Link
+              to="/user/login"
+              className="px-8 py-3 bg-pink-400/75 text-black text-2xl rounded-lg hover:bg-pink-600 transition font-semibold shadow-lg flex items-center gap-2"
+            >
+              Rider
+            </Link>
           </div>
         </div>
 
         {/* Back to Home button */}
-        <button>
-          <Link
-            to="/"
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/80 hover:bg-white p-3 rounded-full shadow-lg transition-all hover:scale-110"
-            title="Back to Home"
-          >
-            <ChevronLeft className="h-6 w-6 text-black" />
-          </Link>
-        </button>
+        <Link
+          to="/"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/80 hover:bg-white p-3 rounded-full shadow-lg transition-all hover:scale-110"
+          title="Back to Home"
+        >
+          <ChevronLeft className="h-6 w-6 text-black" />
+        </Link>
       </div>
     </>
   );

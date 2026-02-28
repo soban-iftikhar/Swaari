@@ -3,28 +3,24 @@ import { Link } from "react-router-dom";
 
 const Driversignup = () => {
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
-    licenseNumber: "",
-    phone: "",
   });
   const [errors, setErrors] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
-    licenseNumber: "",
-    phone: "",
   });
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const nameRegex = /^[a-zA-Z\s]{2,}$/;
-  const phoneRegex = /^[0-9]{10,15}$/;
-  const licenseRegex = /^[A-Z0-9]{5,20}$/;
 
-  const validateName = (name) => {
-    if (!name.trim()) return "Name is required";
-    if (!nameRegex.test(name)) return "Name must be at least 2 characters and contain only letters";
+  const validateName = (name, label) => {
+    if (!name.trim()) return `${label} is required`;
+    if (!nameRegex.test(name)) return `${label} must be at least 2 characters and contain only letters`;
     return "";
   };
 
@@ -43,33 +39,19 @@ const Driversignup = () => {
     return "";
   };
 
-  const validateLicenseNumber = (license) => {
-    if (!license.trim()) return "License number is required";
-    if (!licenseRegex.test(license)) return "License number must be 5-20 alphanumeric characters";
-    return "";
-  };
-
-  const validatePhone = (phone) => {
-    if (!phone.trim()) return "Phone number is required";
-    if (!phoneRegex.test(phone)) return "Phone number must be 10-15 digits";
-    return "";
-  };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
 
     let error = "";
-    if (name === "name") {
-      error = validateName(value);
+    if (name === "firstName") {
+      error = validateName(value, "First name");
+    } else if (name === "lastName") {
+      error = validateName(value, "Last name");
     } else if (name === "email") {
       error = validateEmail(value);
     } else if (name === "password") {
       error = validatePassword(value);
-    } else if (name === "licenseNumber") {
-      error = validateLicenseNumber(value);
-    } else if (name === "phone") {
-      error = validatePhone(value);
     }
 
     setErrors({ ...errors, [name]: error });
@@ -77,19 +59,17 @@ const Driversignup = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const nameError = validateName(formData.name);
+    const firstNameError = validateName(formData.firstName, "First name");
+    const lastNameError = validateName(formData.lastName, "Last name");
     const emailError = validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
-    const licenseError = validateLicenseNumber(formData.licenseNumber);
-    const phoneError = validatePhone(formData.phone);
 
-    if (nameError || emailError || passwordError || licenseError || phoneError) {
+    if (firstNameError || lastNameError || emailError || passwordError) {
       setErrors({
-        name: nameError,
+        firstName: firstNameError,
+        lastName: lastNameError,
         email: emailError,
         password: passwordError,
-        licenseNumber: licenseError,
-        phone: phoneError,
       });
       return;
     }
@@ -97,6 +77,8 @@ const Driversignup = () => {
     // Submit form
     e.target.submit();
   };
+
+  const nameErrorMessage = errors.firstName || errors.lastName;
 
   return (
     <>
@@ -120,21 +102,44 @@ const Driversignup = () => {
           <h2 className="text-3xl font-bold text-white mb-6 text-center">Driver Signup</h2>
 
           <form className="flex flex-col gap-3" action="/driver/signup" method="POST" onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="name" className="text-white font-semibold">
-                Full Name:
+            <div className="grid grid-cols-2 gap-3">
+              <label htmlFor="firstName" className="text-white font-semibold">
+                First Name:
               </label>
+              <label htmlFor="lastName" className="text-white font-semibold">
+                Last Name:
+              </label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <input
                 type="text"
-                id="name"
-                name="name"
-                value={formData.name}
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
                 onChange={handleChange}
-                placeholder="John Doe"
-                className="px-4 text-white py-2.5 rounded-lg bg-white/10 border border-white/15 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="John"
+                className={`px-4 text-white py-2.5 rounded-lg bg-white/10 border focus:outline-none focus:ring-2 ${
+                  errors.firstName
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-white/15 focus:ring-orange-500"
+                }`}
               />
-              {errors.name && <span className="text-red-400 text-sm">{errors.name}</span>}
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                placeholder="Doe"
+                className={`px-4 text-white py-2.5 rounded-lg bg-white/10 border focus:outline-none focus:ring-2 ${
+                  errors.lastName
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-white/15 focus:ring-orange-500"
+                }`}
+              />
             </div>
+            {nameErrorMessage && <span className="text-red-400 text-sm -mt-1">{nameErrorMessage}</span>}
 
             <div className="flex flex-col gap-1">
               <label htmlFor="email" className="text-white font-semibold">
@@ -153,38 +158,6 @@ const Driversignup = () => {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="phone" className="text-white font-semibold">
-                Phone Number:
-              </label>
-              <input
-                type="text"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="1234567890"
-                className="px-4 text-white py-2.5 rounded-lg bg-white/10 border border-white/15 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-              {errors.phone && <span className="text-red-400 text-sm">{errors.phone}</span>}
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label htmlFor="licenseNumber" className="text-white font-semibold">
-                License Number:
-              </label>
-              <input
-                type="text"
-                id="licenseNumber"
-                name="licenseNumber"
-                value={formData.licenseNumber}
-                onChange={handleChange}
-                placeholder="ABC123456"
-                className="px-4 text-white py-2.5 rounded-lg bg-white/10 border border-white/15 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-              {errors.licenseNumber && <span className="text-red-400 text-sm">{errors.licenseNumber}</span>}
-            </div>
-
-            <div className="flex flex-col gap-1">
               <label htmlFor="password" className="text-white font-semibold">
                 Password:
               </label>
@@ -199,6 +172,9 @@ const Driversignup = () => {
               />
               {errors.password && <span className="text-red-400 text-sm">{errors.password}</span>}
             </div>
+
+            <input type="hidden" name="fullName.firstName" value={formData.firstName} />
+            <input type="hidden" name="fullName.lastName" value={formData.lastName} />
 
             <button
               type="submit"
