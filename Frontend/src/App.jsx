@@ -7,7 +7,8 @@ import Driversignup from './pages/Driversignup';
 import ChooseRole from './pages/ChooseRole';
 import UserDashboard from './pages/UserDashboard';
 import DriverDashboard from './pages/DriverDashboard';
-import ProtectedWrapper from './Components/ProtectedWrapper';
+import UserProtectedWrapper from './Components/UserProtectedWrapper';
+import DriverProtectedWrapper from './Components/DriverProtectedWrapper';
 
 function App() {
   return (
@@ -21,14 +22,14 @@ function App() {
         <Route path="/driver/login" element={<Driverlogin />} />
         <Route path="/driver/signup" element={<Driversignup />} />
         <Route path="/user/dashboard" element={
-          <ProtectedWrapper>
+          <UserProtectedWrapper>
             <UserDashboard />
-          </ProtectedWrapper>
+          </UserProtectedWrapper>
         } />
         <Route path="/driver/dashboard" element={
-          <ProtectedWrapper>
+          <DriverProtectedWrapper>
             <DriverDashboard />
-          </ProtectedWrapper>
+          </DriverProtectedWrapper>
         } />
       </Routes>
     </div>

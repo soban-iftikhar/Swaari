@@ -4,17 +4,31 @@ import jwt from "jsonwebtoken";
 const authPlugin = (schema) => {
   // Instance Method to Generate Access Token (short-lived)
   schema.methods.generateAccessToken = function () {
-    const token = jwt.sign({ _id: this._id }, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: "24h",
-    });
+    const token = jwt.sign(
+      { 
+        _id: this._id,
+        role: this.constructor.modelName.toLowerCase() // 'user' or 'driver'
+      }, 
+      process.env.ACCESS_TOKEN_SECRET, 
+      {
+        expiresIn: "24h",
+      }
+    );
     return token;
   };
 
   // Instance Method to Generate Refresh Token (long-lived)
   schema.methods.generateRefreshToken = function () {
-    const token = jwt.sign({ _id: this._id }, process.env.REFRESH_TOKEN_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign(
+      { 
+        _id: this._id,
+        role: this.constructor.modelName.toLowerCase() // 'user' or 'driver'
+      }, 
+      process.env.REFRESH_TOKEN_SECRET, 
+      {
+        expiresIn: "7d",
+      }
+    );
     return token;
   };
 

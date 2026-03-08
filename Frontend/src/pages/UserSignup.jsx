@@ -104,6 +104,7 @@ const UserSignup = () => {
       setUser(data);
       setShowSuccess(true);
       localStorage.setItem("token", data.accessToken);
+      localStorage.setItem("role", "user");
       setTimeout(() => {
         navigate("/user/login");
       }, 2000);

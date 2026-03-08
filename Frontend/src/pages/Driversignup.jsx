@@ -143,6 +143,7 @@ const Driversignup = () => {
         setServerError("");
         setDriver(response.data);
         localStorage.setItem("token", response.data.accessToken);
+        localStorage.setItem("role", "driver");
         setShowSuccess(true);
         setTimeout(() => {
           navigate("/driver/login");
