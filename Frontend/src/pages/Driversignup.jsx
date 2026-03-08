@@ -57,8 +57,7 @@ const Driversignup = () => {
     setErrors({ ...errors, [name]: error });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const checkErrors = () => {
     const firstNameError = validateName(formData.firstName, "First name");
     const lastNameError = validateName(formData.lastName, "Last name");
     const emailError = validateEmail(formData.email);
@@ -71,6 +70,16 @@ const Driversignup = () => {
         email: emailError,
         password: passwordError,
       });
+      return true;
+    }
+
+    return false;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (checkErrors()) {
       return;
     }
 

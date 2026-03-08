@@ -1,7 +1,12 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useContext, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import userDataContext from "../context/userDataContext";
 
 const UserSignup = () => {
+  const { setUser } = useContext(userDataContext);
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -14,6 +19,7 @@ const UserSignup = () => {
     email: "",
     password: "",
   });
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const nameRegex = /^[a-zA-Z\s]{2,}$/;
@@ -57,8 +63,7 @@ const UserSignup = () => {
     setErrors({ ...errors, [name]: error });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const checkErrors = () => {
     const firstNameError = validateName(formData.firstName, "First name");
     const lastNameError = validateName(formData.lastName, "Last name");
     const emailError = validateEmail(formData.email);
@@ -71,11 +76,39 @@ const UserSignup = () => {
         email: emailError,
         password: passwordError,
       });
+      return true;
+    }
+
+    return false;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (checkErrors()) {
       return;
     }
 
-    // Submit form
-    e.target.submit();
+    const newUser = {
+      fullName: {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+      },
+      email: formData.email,
+      password: formData.password,
+    }
+    
+    const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/api/users/register`, newUser);
+    if (response.status === 201) {
+      const data = response.data;
+      setUser(data);
+      setShowSuccess(true);
+      localStorage.setItem("token", data.accessToken);
+      setTimeout(() => {
+        navigate("/user/login");
+      }, 2000);
+    }
+
   };
 
   return (
@@ -188,6 +221,29 @@ const UserSignup = () => {
         </div>
       </div>
 
+      {/* Success Message Overlay */}
+      {showSuccess && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-black/50 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border border-white/10 max-w-md w-full mx-6">
+            <div className="text-center">
+              <div className="mb-4 flex justify-center">
+                <div className="bg-green-500/30 p-4 rounded-full">
+                  <svg className="w-12 h-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Account Created!</h3>
+              <p className="text-white/80 mb-4">Redirecting to login...</p>
+              <div className="flex justify-center gap-2">
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
