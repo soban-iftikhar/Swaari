@@ -1,8 +1,8 @@
 import { useState } from "react";
 import DataContext from "./DataContext";
 
-const UserContext = ({ children }) => {
-    const [user, setUser] = useState({
+const DriverContext = ({ children }) => {
+    const [driver, setDriver] = useState({
         fullname: {
             firstName: "",
             lastName: "",
@@ -11,10 +11,10 @@ const UserContext = ({ children }) => {
     });
 
   return (
-    <DataContext.Provider value={{ user, setUser }}>
+    <DataContext.Provider value={{ driver, setDriver }}>
       {children}
     </DataContext.Provider>
   );
 };
 
-export default UserContext;
+export default DriverContext;
