@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { ChevronLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import DataContext from "../context/DataContext";
 
 const Driverlogin = () => {
+  const { setDriver } = useContext(DataContext);
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({ email: "", password: "" });
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [serverError, setServerError] = useState("");
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -31,7 +37,7 @@ const Driverlogin = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const emailError = validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
@@ -41,8 +47,25 @@ const Driverlogin = () => {
       return;
     }
 
-    // Submit form
-    e.target.submit();
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/api/drivers/login`, {
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (response.status === 200) {
+        setServerError("");
+        setDriver(response.data);
+        localStorage.setItem("token", response.data.accessToken);
+        setShowSuccess(true);
+        setTimeout(() => {
+          navigate("/driver/dashboard");
+        }, 2000);
+      }
+    } catch (error) {
+      setServerError(error.response?.data?.message || "Login failed. Please try again.");
+      setShowSuccess(false);
+    }
   };
 
   return (
@@ -59,14 +82,20 @@ const Driverlogin = () => {
 
       {/* Main container with background */}
       <div
-        className="min-h-screen bg-cover bg-center bg-no-repeat flex items-start md:items-center justify-center px-6 pt-24 pb-16"
+        className="min-h-screen bg-cover bg-center bg-no-repeat flex items-start md:items-center justify-center px-0 pt-24 pb-16"
         style={{ backgroundImage: "url('/trafficLights.png')" }}
       >
         {/* Login form card */}
-        <div className="w-full max-w-md bg-black/45 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border border-white/10">
-          <h2 className="text-3xl font-bold text-white mb-6 text-center">Driver Login</h2>
+        <div className="w-screen max-w-none sm:w-[calc(100vw-1rem)] sm:max-w-6xl bg-black/40 backdrop-blur-sm p-8 rounded-none sm:rounded-3xl shadow-2xl">
+          <h2 className="text-3xl font-bold text-white mb-2 text-center">Driver Login</h2>
+          <div className="mx-auto mb-6 h-1 w-28 rounded-full bg-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.9)]" />
 
-          <form className="flex flex-col gap-4" action="/driver/login" method="POST" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+            {serverError && (
+              <div className="bg-red-500/30 border border-red-400 text-red-200 px-4 py-3 rounded-lg">
+                {serverError}
+              </div>
+            )}
             <div className="flex flex-col gap-2">
               <label htmlFor="email" className="text-white font-semibold">
                 Email:
@@ -78,7 +107,7 @@ const Driverlogin = () => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="abc@example.com"
-                className="px-4 text-white py-3 rounded-lg bg-white/10 border border-white/15 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="px-4 text-white py-3 rounded-lg bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
               {errors.email && <span className="text-red-400 text-sm">{errors.email}</span>}
             </div>
@@ -94,14 +123,14 @@ const Driverlogin = () => {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="********"
-                className="px-4 py-3 text-white rounded-lg bg-white/10 border border-white/15 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="px-4 py-3 text-white rounded-lg bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
               {errors.password && <span className="text-red-400 text-sm">{errors.password}</span>}
             </div>
 
             <button
               type="submit"
-              className="mt-4 px-8 py-3 bg-orange-600 text-white text-lg rounded-lg hover:bg-orange-700 transition font-semibold shadow-lg"
+              className="mt-4 px-8 py-3 bg-orange-600 text-white text-lg rounded-lg hover:bg-orange-700 transition font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Login
             </button>
@@ -125,6 +154,30 @@ const Driverlogin = () => {
       >
         <ChevronLeft className="h-6 w-6 text-black" />
       </Link>
+
+      {/* Success Message Overlay */}
+      {showSuccess && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-black/50 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border border-white/10 max-w-5xl w-full mx-6">
+            <div className="text-center">
+              <div className="mb-4 flex justify-center">
+                <div className="bg-green-500/30 p-4 rounded-full">
+                  <svg className="w-12 h-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Login Successful!</h3>
+              <p className="text-white/80 mb-4">Redirecting to home...</p>
+              <div className="flex justify-center gap-2">
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

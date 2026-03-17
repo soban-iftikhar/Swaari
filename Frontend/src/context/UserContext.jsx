@@ -1,5 +1,5 @@
 import { useState } from "react";
-import UserDataContext from "./userDataContext";
+import DataContext from "./DataContext";
 
 const UserContext = ({ children }) => {
     const [user, setUser] = useState({
@@ -11,9 +11,9 @@ const UserContext = ({ children }) => {
     });
 
   return (
-    <UserDataContext.Provider value={{ user, setUser }}>
+    <DataContext.Provider value={{ user, setUser }}>
       {children}
-    </UserDataContext.Provider>
+    </DataContext.Provider>
   );
 };
 

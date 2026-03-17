@@ -2,10 +2,10 @@ import { useState, useContext } from "react";
 import { ChevronLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import userDataContext from "../context/userDataContext";
+import DataContext from "../context/DataContext";
 
 const UserLogin = () => {
-  const { setUser } = useContext(userDataContext);
+  const { setUser } = useContext(DataContext);
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({ email: "", password: "" });
@@ -59,7 +59,7 @@ const UserLogin = () => {
         localStorage.setItem("token", response.data.accessToken);
         setShowSuccess(true);
         setTimeout(() => {
-          navigate("/home");
+          navigate("/user/dashboard");
         }, 2000);
       }
     } catch (error) {
@@ -81,12 +81,13 @@ const UserLogin = () => {
 
       {/* Main container with background */}
       <div
-        className="min-h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center px-6"
+        className="min-h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center px-0"
         style={{ backgroundImage: "url('/trafficLights.png')" }}
       >
         {/* Login form card */}
-        <div className="w-full max-w-md bg-black/40 backdrop-blur-sm p-8 rounded-3xl shadow-2xl">
-          <h2 className="text-3xl font-bold text-white mb-6 text-center">User Login</h2>
+        <div className="w-screen max-w-none sm:w-[calc(100vw-1rem)] sm:max-w-6xl bg-black/40 backdrop-blur-sm p-8 rounded-none sm:rounded-3xl shadow-2xl">
+          <h2 className="text-3xl font-bold text-white mb-2 text-center">User Login</h2>
+          <div className="mx-auto mb-6 h-1 w-28 rounded-full bg-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.9)]" />
 
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             {serverError && (
@@ -156,7 +157,7 @@ const UserLogin = () => {
       {/* Success Message Overlay */}
       {showSuccess && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="bg-black/50 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border border-white/10 max-w-md w-full mx-6">
+          <div className="bg-black/50 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border border-white/10 max-w-6xl w-full mx-6">
             <div className="text-center">
               <div className="mb-4 flex justify-center">
                 <div className="bg-green-500/30 p-4 rounded-full">

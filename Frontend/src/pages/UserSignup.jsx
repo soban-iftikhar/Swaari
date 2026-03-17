@@ -1,10 +1,10 @@
 import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import userDataContext from "../context/userDataContext";
+import DataContext from "../context/DataContext";
 
 const UserSignup = () => {
-  const { setUser } = useContext(userDataContext);
+  const { setUser } = useContext(DataContext);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -125,15 +125,16 @@ const UserSignup = () => {
 
       {/* Main container with background */}
       <div
-        className="min-h-screen bg-cover bg-center bg-no-repeat flex items-start md:items-center justify-center px-6 pt-24 pb-16"
+        className="min-h-screen bg-cover bg-center bg-no-repeat flex items-start md:items-center justify-center px-0 pt-24 pb-16"
         style={{ backgroundImage: "url('/trafficLights.png')" }}
       >
         {/* Signup form card */}
-        <div className="w-full max-w-md bg-black/45 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border border-white/10">
-          <h2 className="text-3xl font-bold text-white mb-6 text-center">User Signup</h2>
+        <div className="w-screen max-w-none sm:w-[calc(100vw-1rem)] sm:max-w-5xl bg-black/45 backdrop-blur-sm p-6 sm:p-8 rounded-none sm:rounded-3xl shadow-2xl border border-white/10">
+          <h2 className="text-3xl font-bold text-white mb-2 text-center">User Signup</h2>
+          <div className="mx-auto mb-4 h-1 w-28 rounded-full bg-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.9)]" />
 
-          <form className="flex flex-col gap-3" action="/user/signup" method="POST" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-2 gap-3">
+          <form className="flex flex-col gap-2" action="/user/signup" method="POST" onSubmit={handleSubmit}>
+            <div className="grid grid-cols-2 gap-3 mb-1">
               <label htmlFor="firstName" className="text-white font-semibold">
                 First Name:
               </label>
@@ -142,33 +143,36 @@ const UserSignup = () => {
               </label>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                type="text"
-                id="firstName"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                placeholder="John"
-                className="px-4 text-white py-3 rounded-lg bg-white/10 border border-white/15 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-              <input
-                type="text"
-                id="lastName"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                placeholder="Doe"
-                className="px-4 text-white py-3 rounded-lg bg-white/10 border border-white/15 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
+            <div className="grid grid-cols-2 gap-3 mb-1">
+                <input
+                  type="text"
+                  id="firstName"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  placeholder="John"
+                  className={`px-4 text-white py-2.5 rounded-lg bg-white/10 border focus:outline-none focus:ring-2 ${
+                    errors.firstName
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-white/15 focus:ring-orange-500"
+                  }`}
+                />
+                <input
+                  type="text"
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  placeholder="Doe"
+                  className={`px-4 text-white py-2.5 rounded-lg bg-white/10 border focus:outline-none focus:ring-2 ${
+                    errors.lastName
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-white/15 focus:ring-orange-500"
+                  }`}
+                />
+              </div>
 
-            <div className="grid grid-cols-2 gap-3 min-h-5">
-              <span className="text-red-400 text-sm">{errors.firstName}</span>
-              <span className="text-red-400 text-sm">{errors.lastName}</span>
-            </div>
-
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1 mt-0">
               <label htmlFor="email" className="text-white font-semibold">
                 Email:
               </label>
@@ -224,7 +228,7 @@ const UserSignup = () => {
       {/* Success Message Overlay */}
       {showSuccess && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="bg-black/50 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border border-white/10 max-w-md w-full mx-6">
+          <div className="bg-black/50 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border border-white/10 max-w-5xl w-full mx-6">
             <div className="text-center">
               <div className="mb-4 flex justify-center">
                 <div className="bg-green-500/30 p-4 rounded-full">
