@@ -42,6 +42,7 @@ const authService = {
       accessToken,
       refreshToken,
       user: userResponse,
+      role: Model.modelName.toLowerCase(), // 'user' or 'driver'
     };
   },
 
@@ -76,6 +77,7 @@ const authService = {
       accessToken,
       refreshToken,
       user: userResponse,
+      role: Model.modelName.toLowerCase(), // 'user' or 'driver'
     };
   },
 

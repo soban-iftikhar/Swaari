@@ -57,6 +57,7 @@ const UserLogin = () => {
         setServerError("");
         setUser(response.data);
         localStorage.setItem("token", response.data.accessToken);
+        localStorage.setItem("role", "user");
         setShowSuccess(true);
         setTimeout(() => {
           navigate("/user/dashboard");
