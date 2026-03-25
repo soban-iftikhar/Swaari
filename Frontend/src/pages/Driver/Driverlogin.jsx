@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import { ChevronLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import DataContext from "../context/DataContext";
+import DataContext from "../../context/DataContext";
 
 const Driverlogin = () => {
   const { setDriver } = useContext(DataContext);
@@ -54,10 +54,14 @@ const Driverlogin = () => {
       });
 
       if (response.status === 200) {
+        const payload = response.data?.entity ?? response.data;
+        const firstName = payload?.fullname?.firstname || payload?.fullName?.firstName || 'Driver';
+
         setServerError("");
-        setDriver(response.data);
+        setDriver(payload);
         localStorage.setItem("token", response.data.accessToken);
         localStorage.setItem("role", "driver");
+        localStorage.setItem("firstName", firstName);
         setShowSuccess(true);
         setTimeout(() => {
           navigate("/driver/dashboard");

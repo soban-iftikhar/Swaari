@@ -1,10 +1,10 @@
 import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import DataContext from "../context/DataContext";
+import DataContext from "../../context/DataContext";
 
-const UserSignup = () => {
-  const { setUser } = useContext(DataContext);
+const RiderSignup = () => {
+  const { setRider } = useContext(DataContext);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -89,7 +89,7 @@ const UserSignup = () => {
       return;
     }
 
-    const newUser = {
+    const newRider = {
       fullName: {
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -98,15 +98,15 @@ const UserSignup = () => {
       password: formData.password,
     }
     
-    const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/api/users/register`, newUser);
+    const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/api/riders/register`, newRider);
     if (response.status === 201) {
       const data = response.data;
-      setUser(data);
+      setRider(data);
       setShowSuccess(true);
       localStorage.setItem("token", data.accessToken);
-      localStorage.setItem("role", "user");
+      localStorage.setItem("role", "rider");
       setTimeout(() => {
-        navigate("/user/login");
+        navigate("/rider/login");
       }, 2000);
     }
 
@@ -131,10 +131,10 @@ const UserSignup = () => {
       >
         {/* Signup form card */}
         <div className="w-screen max-w-none sm:w-[calc(100vw-1rem)] sm:max-w-5xl bg-black/45 backdrop-blur-sm p-6 sm:p-8 rounded-none sm:rounded-3xl shadow-2xl border border-white/10">
-          <h2 className="text-3xl font-bold text-white mb-2 text-center">User Signup</h2>
+          <h2 className="text-3xl font-bold text-white mb-2 text-center">Rider Signup</h2>
           <div className="mx-auto mb-4 h-1 w-28 rounded-full bg-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.9)]" />
 
-          <form className="flex flex-col gap-2" action="/user/signup" method="POST" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-2" action="/rider/signup" method="POST" onSubmit={handleSubmit}>
             <div className="grid grid-cols-2 gap-3 mb-1">
               <label htmlFor="firstName" className="text-white font-semibold">
                 First Name:
@@ -219,7 +219,7 @@ const UserSignup = () => {
           {/* Login link */}
           <p className="text-center text-white mt-6">
             Already have an account?{" "}
-            <Link to="/user/login" className="font-bold text-blue-300 hover:text-blue-200 underline">
+            <Link to="/rider/login" className="font-bold text-blue-300 hover:text-blue-200 underline">
               Login
             </Link>
           </p>
@@ -253,4 +253,4 @@ const UserSignup = () => {
   );
 };
 
-export default UserSignup;
+export default RiderSignup;

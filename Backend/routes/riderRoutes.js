@@ -1,11 +1,11 @@
 import express from "express";
 import { body } from "express-validator";
-import userController from "../controllers/userController.js";
-import authUser from "../middlewares/AuthMiddleware.js";
+import riderController from "../controllers/riderController.js";
+import authRider from "../middlewares/AuthMiddleware.js";
 
 const router = express.Router();
 
-// Route for user registration
+// Route for rider registration
 router.post(
   "/register",
   [
@@ -20,10 +20,10 @@ router.post(
       .isLength({ min: 8 })
       .withMessage("Password must be at least 8 characters long"),
   ],
-  userController.registerUser,
+  riderController.registerRider,
 );
 
-// Route for user login
+// Route for rider login
 router.post(
   "/login",
   [
@@ -32,13 +32,13 @@ router.post(
       .isLength({ min: 8 })
       .withMessage("Password must be at least 8 characters long"),
   ],
-  userController.loginUser,
+  riderController.loginRider,
 );
 
 
-// Protected route to get user profile
-router.get("/profile", authUser, userController.getUserProfile);
+// Protected route to get rider profile
+router.get("/profile", authRider, riderController.getRiderProfile);
 
-router.get("/logout", authUser, userController.logoutUser);
+router.get("/logout", authRider, riderController.logoutRider);
 
 export default router;

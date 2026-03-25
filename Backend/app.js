@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import connectDB from './configs/db.js';
 import cookieParser from 'cookie-parser';
-import userRoutes from './routes/userRoutes.js';
+import riderRoutes from './routes/riderRoutes.js';
 import driverRoutes from './routes/driverRoutes.js';
 
 
@@ -22,7 +22,7 @@ import driverRoutes from './routes/driverRoutes.js';
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
-  app.use("/api/users", userRoutes);
+  app.use("/api/riders", riderRoutes);
   app.use("/api/drivers", driverRoutes);
 
   app.listen(PORT, () => {

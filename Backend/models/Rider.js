@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import authPlugin from "../utils/authPlugin.js";
 
-const userSchema = new mongoose.Schema(
+const riderSchema = new mongoose.Schema(
   {
     fullname: {
       firstname: {
@@ -48,7 +48,7 @@ const userSchema = new mongoose.Schema(
 );
 
 // Apply auth plugin
-userSchema.plugin(authPlugin);
+riderSchema.plugin(authPlugin);
 
-const User = mongoose.model("User", userSchema);
-export default User;
+const Rider = mongoose.model("Rider", riderSchema);
+export default Rider;

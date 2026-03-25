@@ -1,8 +1,8 @@
 import { useState } from "react";
 import DataContext from "./DataContext";
 
-const UserContext = ({ children }) => {
-    const [user, setUser] = useState({
+const RiderContext = ({ children }) => {
+  const [rider, setRider] = useState({
         fullname: {
             firstName: "",
             lastName: "",
@@ -11,10 +11,10 @@ const UserContext = ({ children }) => {
     });
 
   return (
-    <DataContext.Provider value={{ user, setUser }}>
+    <DataContext.Provider value={{ rider, setRider }}>
       {children}
     </DataContext.Provider>
   );
 };
 
-export default UserContext;
+export default RiderContext;

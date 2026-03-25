@@ -3,7 +3,7 @@ import { createContext, useState } from "react";
 const DataContext = createContext();
 
 export const DataProvider = ({ children }) => {
-  const [user, setUser] = useState({
+  const [rider, setRider] = useState({
     fullname: {
       firstName: "",
       lastName: "",
@@ -20,7 +20,7 @@ export const DataProvider = ({ children }) => {
   });
 
   return (
-    <DataContext.Provider value={{ user, setUser, driver, setDriver }}>
+    <DataContext.Provider value={{ rider, setRider, driver, setDriver }}>
       {children}
     </DataContext.Provider>
   );

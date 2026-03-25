@@ -1,21 +1,21 @@
 import BlackListToken from "../models/BlackListToken.js";
 
 const authService = {
-  // Generic register for any user type (User, Driver, etc.)
+  // Generic register for any entity type (Rider, Driver, etc.)
   async register(Model, data) {
     const { fullName, email, password, ...rest } = data;
 
-    // Check if user already exists
-    const existingUser = await Model.findOne({ email });
-    if (existingUser) {
-      throw new Error("User already exists");
+    // Check if entity already exists
+    const existingEntity = await Model.findOne({ email });
+    if (existingEntity) {
+      throw new Error(`${Model.modelName} already exists`);
     }
 
     // Hash password
     const hashedPassword = await Model.hashPassword(password);
 
-    // Create user
-    const user = new Model({
+    // Create entity
+    const entity = new Model({
       fullname: fullName ? {
         firstname: fullName.firstName,
         lastname: fullName.lastName,
@@ -26,62 +26,62 @@ const authService = {
     });
 
     // Generate tokens
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+    const accessToken = entity.generateAccessToken();
+    const refreshToken = entity.generateRefreshToken();
 
     // Save refresh token to database
-    user.refreshToken = refreshToken;
-    await user.save();
+    entity.refreshToken = refreshToken;
+    await entity.save();
 
     // Prepare response
-    const userResponse = user.toObject();
-    delete userResponse.password;
-    delete userResponse.refreshToken;
+    const entityResponse = entity.toObject();
+    delete entityResponse.password;
+    delete entityResponse.refreshToken;
 
     return {
       accessToken,
       refreshToken,
-      user: userResponse,
-      role: Model.modelName.toLowerCase(), // 'user' or 'driver'
+      entity: entityResponse,
+      role: Model.modelName.toLowerCase(), // 'rider' or 'driver'
     };
   },
 
-  // Generic login for any user type
+  // Generic login for any entity type
   async login(Model, email, password) {
-    // Find user and include password field
-    const user = await Model.findOne({ email }).select("+password");
-    if (!user) {
+    // Find entity and include password field
+    const entity = await Model.findOne({ email }).select("+password");
+    if (!entity) {
       throw new Error("Invalid email or password");
     }
 
     // Verify password
-    const isPasswordValid = await user.comparePassword(password);
+    const isPasswordValid = await entity.comparePassword(password);
     if (!isPasswordValid) {
       throw new Error("Invalid password");
     }
 
     // Generate tokens
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+    const accessToken = entity.generateAccessToken();
+    const refreshToken = entity.generateRefreshToken();
 
     // Save refresh token to database
-    user.refreshToken = refreshToken;
-    await user.save();
+    entity.refreshToken = refreshToken;
+    await entity.save();
 
     // Prepare response
-    const userResponse = user.toObject();
-    delete userResponse.password;
-    delete userResponse.refreshToken;
+    const entityResponse = entity.toObject();
+    delete entityResponse.password;
+    delete entityResponse.refreshToken;
 
     return {
       accessToken,
       refreshToken,
-      user: userResponse,
-      role: Model.modelName.toLowerCase(), // 'user' or 'driver'
+      entity: entityResponse,
+      role: Model.modelName.toLowerCase(), // 'rider' or 'driver'
     };
   },
 
-  // Generic logout for any user type
+  // Generic logout for any entity type
   async logout(token) {
     if (token) {
       await BlackListToken.create({ token });
