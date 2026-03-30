@@ -29,7 +29,7 @@ const ChooseRole = () => {
               Driver
             </Link>
             <Link
-              to="/user/login"
+              to="/rider/login"
               className="px-8 py-3 bg-pink-400/75 text-black text-2xl rounded-lg hover:bg-pink-600 transition font-semibold shadow-lg flex items-center gap-2"
             >
               Rider

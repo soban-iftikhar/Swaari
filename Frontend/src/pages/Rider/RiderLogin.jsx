@@ -2,10 +2,10 @@ import { useState, useContext } from "react";
 import { ChevronLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import DataContext from "../context/DataContext";
+import DataContext from "../../context/DataContext";
 
-const UserLogin = () => {
-  const { setUser } = useContext(DataContext);
+const RiderLogin = () => {
+  const { setRider } = useContext(DataContext);
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({ email: "", password: "" });
@@ -48,19 +48,23 @@ const UserLogin = () => {
     }
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/api/users/login`, {
+      const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/api/riders/login`, {
         email: formData.email,
         password: formData.password,
       });
 
       if (response.status === 200) {
+        const payload = response.data?.entity ?? response.data;
+        const firstName = payload?.fullname?.firstname || payload?.fullName?.firstName || 'Rider';
+
         setServerError("");
-        setUser(response.data);
+        setRider(payload);
         localStorage.setItem("token", response.data.accessToken);
-        localStorage.setItem("role", "user");
+        localStorage.setItem("role", "rider");
+        localStorage.setItem("firstName", firstName);
         setShowSuccess(true);
         setTimeout(() => {
-          navigate("/user/dashboard");
+          navigate("/rider/dashboard");
         }, 2000);
       }
     } catch (error) {
@@ -87,7 +91,7 @@ const UserLogin = () => {
       >
         {/* Login form card */}
         <div className="w-screen max-w-none sm:w-[calc(100vw-1rem)] sm:max-w-6xl bg-black/40 backdrop-blur-sm p-8 rounded-none sm:rounded-3xl shadow-2xl">
-          <h2 className="text-3xl font-bold text-white mb-2 text-center">User Login</h2>
+          <h2 className="text-3xl font-bold text-white mb-2 text-center">Rider Login</h2>
           <div className="mx-auto mb-6 h-1 w-28 rounded-full bg-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.9)]" />
 
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -139,7 +143,7 @@ const UserLogin = () => {
           {/* Sign up link */}
           <p className="text-center text-white mt-6">
             Don't have an account?{" "}
-            <Link to="/user/signup" className="font-bold text-blue-300 hover:text-blue-200 underline">
+            <Link to="/rider/signup" className="font-bold text-blue-300 hover:text-blue-200 underline">
               Sign up
             </Link>
           </p>
@@ -182,4 +186,4 @@ const UserLogin = () => {
   );
 };
 
-export default UserLogin;
+export default RiderLogin;

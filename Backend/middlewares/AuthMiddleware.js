@@ -1,9 +1,9 @@
-import User from '../models/User.js';
+import Rider from '../models/Rider.js';
 import Driver from '../models/Driver.js';
 import jwt from 'jsonwebtoken';
 
 // Generic auth middleware factory
-const createAuthMiddleware = (Model, attachAs = 'user') => {
+const createAuthMiddleware = (Model, attachAs = 'entity') => {
   return async (req, res, next) => {
     try {
       const token = req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
@@ -25,11 +25,11 @@ const createAuthMiddleware = (Model, attachAs = 'user') => {
   };
 };
 
-// Middleware to authenticate user
-const authUser = createAuthMiddleware(User, 'user');
+// Middleware to authenticate rider
+const authRider = createAuthMiddleware(Rider, 'rider');
 
 // Middleware to authenticate driver
 const authDriver = createAuthMiddleware(Driver, 'driver');
 
-export { authUser, authDriver };
-export default authUser; 
+export { authRider, authDriver };
+export default authRider;

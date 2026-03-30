@@ -7,7 +7,7 @@ const authPlugin = (schema) => {
     const token = jwt.sign(
       { 
         _id: this._id,
-        role: this.constructor.modelName.toLowerCase() // 'user' or 'driver'
+        role: this.constructor.modelName.toLowerCase() // 'rider' or 'driver'
       }, 
       process.env.ACCESS_TOKEN_SECRET, 
       {
@@ -22,7 +22,7 @@ const authPlugin = (schema) => {
     const token = jwt.sign(
       { 
         _id: this._id,
-        role: this.constructor.modelName.toLowerCase() // 'user' or 'driver'
+        role: this.constructor.modelName.toLowerCase() // 'rider' or 'driver'
       }, 
       process.env.REFRESH_TOKEN_SECRET, 
       {
@@ -39,8 +39,8 @@ const authPlugin = (schema) => {
   };
 
   // Instance Method to Compare password
-  schema.methods.comparePassword = async function (userPassword) {
-    return await bcrypt.compare(userPassword, this.password);
+  schema.methods.comparePassword = async function (plainPassword) {
+    return await bcrypt.compare(plainPassword, this.password);
   };
 };
 

@@ -112,7 +112,7 @@ The frontend will communicate with the backend API at:
 ### Example API Call
 ```javascript
 // Example: Login user
-const response = await fetch('http://localhost:5000/api/users/login', {
+const response = await fetch('http://localhost:5000/api/riders/login', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',

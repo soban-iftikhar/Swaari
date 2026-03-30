@@ -22,16 +22,16 @@ Backend/
 ├── configs/
 │   └── db.js
 ├── controllers/
-│   ├── userController.js
+│   ├── riderController.js
 │   └── driverController.js
 ├── middlewares/
 │   └── AuthMiddleware.js
 ├── models/
-│   ├── User.js
+│   ├── Rider.js
 │   ├── Driver.js
 │   └── BlackListToken.js
 ├── routes/
-│   ├── userRoutes.js
+│   ├── riderRoutes.js
 │   └── driverRoutes.js
 ├── services/
 │   └── authService.js
@@ -79,20 +79,20 @@ Base URL: `http://localhost:5000`
 
 ## API Routes
 
-### User Routes
-Base path: `/api/users`
+### Rider Routes
+Base path: `/api/riders`
 
 | Method | Route | Description | Auth |
 |---|---|---|---|
-| POST | `/register` | Register new user | No |
-| POST | `/login` | Login user | No |
-| GET | `/profile` | Current user profile | Yes |
-| GET | `/logout` | Logout current user | Yes |
+| POST | `/register` | Register new rider | No |
+| POST | `/login` | Login rider | No |
+| GET | `/profile` | Current rider profile | Yes |
+| GET | `/logout` | Logout current rider | Yes |
 
 ### Driver Routes
-BaseUser Register
+Base Rider Register
 
-`POST /api/users/register`
+`POST /api/riders/register`
 
 ```json
 {
@@ -105,9 +105,9 @@ BaseUser Register
 }
 ```
 
-### User Login
+### Rider Login
 
-`POST /api/users/login`
+`POST /api/riders/login`
 
 ```json
 {
@@ -152,7 +152,7 @@ BaseUser Register
 
 ### Login
 
-`POST /api/users/login`
+`POST /api/riders/login`
 
 ```json
 {
@@ -180,8 +180,8 @@ Logout behavior:
 ```json
 {
   "accessToken": "...",
-  "refreshToUser: `POST /api/users/register`
-2. Login User: `POST /api/users/login`
+  "refreshToRider: `POST /api/riders/register`
+2. Login Rider: `POST /api/riders/login`
 3. Copy `accessToken` from response
 4. Call protected routes with header:
 
@@ -189,24 +189,24 @@ Logout behavior:
 Authorization: Bearer <accessToken>
 ```
 
-5. Get Profile: `GET /api/users/profile`
-6. Logout: `GET /api/users/logout`
+5. Get Profile: `GET /api/riders/profile`
+6. Logout: `GET /api/riders/logout`
 
 Same flow works for `/api/drivers/*` endpoints.
 
 ## Architecture
 
 ### Services
-- **authService**: Generic auth logic (register, login, logout) for any user type
-- Reusable for User, Driver, Admin, etc.
+- **authService**: Generic auth logic (register, login, logout) for any entity type
+- Reusable for Rider, Driver, Admin, etc.
 
 ### Utils
 - **authPlugin**: Mongoose plugin adding JWT token generation and password hashing
-- Applied to both User and Driver models
+- Applied to both Rider and Driver models
 - Eliminates code duplication
 
 ### Key Features
-- ✅ Reusable auth logic (User & Driver share same authService)
+- ✅ Reusable auth logic (Rider & Driver share same authService)
 - ✅ Mongoose plugin pattern for models
 - ✅ JWT tokens with secure HTTP-only cookies
 - ✅ Token blacklisting on logout
@@ -238,8 +238,8 @@ Login:
 
 ## Postman Quick Test
 
-1. Register with `POST /api/users/register`
-2. Login with `POST /api/users/login`
+1. Register with `POST /api/riders/register`
+2. Login with `POST /api/riders/login`
 3. Copy `accessToken` from response
 4. Call protected routes with header:
 
@@ -247,7 +247,7 @@ Login:
 Authorization: Bearer <accessToken>
 ```
 
-5. Test logout using `GET /api/users/logout`
+5. Test logout using `GET /api/riders/logout`
 
 ## Notes
 

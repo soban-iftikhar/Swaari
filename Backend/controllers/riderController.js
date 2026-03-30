@@ -1,23 +1,23 @@
-import userService from "../services/userService.js";
+import riderService from "../services/riderService.js";
 import { validationResult } from "express-validator";
 
-// Controller function to handle user registration
-const registerUser = async (req, res) => {
+// Controller function to handle rider registration
+const registerRider = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const result = await userService.registerUser(req.body);
+    const result = await riderService.registerRider(req.body);
     res.status(201).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
-// Controller function to handle user login
-const loginUser = async (req, res) => {
+// Controller function to handle rider login
+const loginRider = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -25,7 +25,7 @@ const loginUser = async (req, res) => {
     }
 
     const { email, password } = req.body;
-    const result = await userService.loginUser(email, password);
+    const result = await riderService.loginRider(email, password);
 
     // Set access token in HTTP-only cookie
     res.cookie("accessToken", result.accessToken, {
@@ -41,21 +41,21 @@ const loginUser = async (req, res) => {
   }
 };
 
-// Controller function to get user profile (protected route)
-const getUserProfile = async (req, res) => {
+// Controller function to get rider profile (protected route)
+const getRiderProfile = async (req, res) => {
   try {
-    const user = await userService.getUserProfile(req.user);
-    res.status(200).json({ user });
+    const rider = await riderService.getRiderProfile(req.rider);
+    res.status(200).json({ rider });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Controller function to handle user logout
-const logoutUser = async (req, res) => {
+// Controller function to handle rider logout
+const logoutRider = async (req, res) => {
   try {
     const token = req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
-    await userService.logoutUser(token);
+    await riderService.logoutRider(token);
     res.clearCookie("accessToken");
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
@@ -64,8 +64,8 @@ const logoutUser = async (req, res) => {
 };
 
 export default {
-  registerUser,
-  loginUser,
-  getUserProfile,
-  logoutUser,
+  registerRider,
+  loginRider,
+  getRiderProfile,
+  logoutRider,
 };
