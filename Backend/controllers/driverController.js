@@ -1,5 +1,6 @@
 import driverService from "../services/driverService.js";
 import { validationResult } from "express-validator";
+import asyncHandler from "../utils/asyncHandler.js";
 
 // Controller function to handle driver registration
 const registerDriver = async (req, res) => {
@@ -63,9 +64,48 @@ const logoutDriver = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/drivers/online
+ * Body: { isOnline: boolean, lat?: number, lng?: number }
+ */
+const setOnlineStatus = asyncHandler(async (req, res) => {
+  const { isOnline, lat, lng } = req.body;
+  const coords = lat != null && lng != null ? { lat: Number(lat), lng: Number(lng) } : undefined;
+  const driver = await driverService.setOnlineStatus(req.driver._id, !!isOnline, coords);
+  res.status(200).json({ driver });
+});
+
+/**
+ * POST /api/drivers/location
+ * Body: { lat: number, lng: number }
+ */
+const updateLocation = asyncHandler(async (req, res) => {
+  const { lat, lng } = req.body;
+  if (lat == null || lng == null) {
+    return res.status(400).json({ message: "lat and lng are required" });
+  }
+  const driver = await driverService.updateLocation(req.driver._id, {
+    lat: Number(lat),
+    lng: Number(lng),
+  });
+  res.status(200).json({ driver });
+});
+
+/**
+ * GET /api/drivers/dashboard
+ * Analytics: lifetime stats, rating, 7-day earnings breakdown.
+ */
+const getDashboard = asyncHandler(async (req, res) => {
+  const stats = await driverService.getDashboardStats(req.driver._id);
+  res.status(200).json(stats);
+});
+
 export default {
   registerDriver,
   loginDriver,
   getDriverProfile,
   logoutDriver,
+  setOnlineStatus,
+  updateLocation,
+  getDashboard,
 };
