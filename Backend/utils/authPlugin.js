@@ -1,17 +1,21 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
+/**
+ * Mongoose plugin adding JWT + password helpers shared by Rider and Driver.
+ * Token TTLs are configurable via ACCESS_TOKEN_TTL / REFRESH_TOKEN_TTL env vars.
+ */
 const authPlugin = (schema) => {
   // Instance Method to Generate Access Token (short-lived)
   schema.methods.generateAccessToken = function () {
     const token = jwt.sign(
-      { 
-        _id: this._id,
-        role: this.constructor.modelName.toLowerCase() // 'rider' or 'driver'
-      }, 
-      process.env.ACCESS_TOKEN_SECRET, 
       {
-        expiresIn: "24h",
+        _id: this._id,
+        role: this.constructor.modelName.toLowerCase(), // 'rider' or 'driver'
+      },
+      process.env.ACCESS_TOKEN_SECRET,
+      {
+        expiresIn: process.env.ACCESS_TOKEN_TTL || "24h",
       }
     );
     return token;
@@ -20,13 +24,13 @@ const authPlugin = (schema) => {
   // Instance Method to Generate Refresh Token (long-lived)
   schema.methods.generateRefreshToken = function () {
     const token = jwt.sign(
-      { 
-        _id: this._id,
-        role: this.constructor.modelName.toLowerCase() // 'rider' or 'driver'
-      }, 
-      process.env.REFRESH_TOKEN_SECRET, 
       {
-        expiresIn: "7d",
+        _id: this._id,
+        role: this.constructor.modelName.toLowerCase(), // 'rider' or 'driver'
+      },
+      process.env.REFRESH_TOKEN_SECRET,
+      {
+        expiresIn: process.env.REFRESH_TOKEN_TTL || "7d",
       }
     );
     return token;

@@ -1,1 +1,6 @@
 node_modules/
+dist/
+
+# Local env overrides (put your real Google Maps key here — git-ignored)
+.env.local
+*.local

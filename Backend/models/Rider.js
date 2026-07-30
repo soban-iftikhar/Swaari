@@ -7,7 +7,7 @@ const riderSchema = new mongoose.Schema(
       firstname: {
         type: String,
         required: true,
-        minlength: [3, "Fisrt name must be atleast 3 characters long"],
+        minlength: [3, "First name must be atleast 3 characters long"],
       },
       lastname: {
         type: String,
@@ -29,15 +29,45 @@ const riderSchema = new mongoose.Schema(
       minlength: [8, "Password must be atleast 8 characters long"],
     },
 
+    /**
+     * Last known position as a GeoJSON Point: coordinates are [longitude, latitude].
+     * Used to default the pickup pin and for support/analytics.
+     */
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number], // [lng, lat]
+        default: undefined,
+      },
+      updatedAt: { type: Date },
+    },
+
+    rating: {
+      average: { type: Number, default: 5, min: 0, max: 5 },
+      count: { type: Number, default: 0 },
+    },
+
+    currentRide: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Ride",
+      default: null,
+    },
+
     socketId: {
       type: String,
     },
     refreshToken: {
       type: String,
       default: null,
+      select: false,
     },
   },
   {
+    timestamps: true,
     toJSON: {
       transform(doc, ret) {
         delete ret.__v;
@@ -46,6 +76,8 @@ const riderSchema = new mongoose.Schema(
     },
   },
 );
+
+riderSchema.index({ location: "2dsphere" });
 
 // Apply auth plugin
 riderSchema.plugin(authPlugin);

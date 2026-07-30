@@ -1,12 +1,242 @@
 @import "tailwindcss";
 
+/*
+ * ─────────────────────────────────────────────────────────────
+ * Swaari Design System — solid, flat, high-contrast
+ * ─────────────────────────────────────────────────────────────
+ * Strict palette: off-white surfaces, rich charcoal, warm slate,
+ * and energetic accents (amber #FFC107, emerald #10B981).
+ * No gradients. No decorative blur. Solid borders + subtle shadows.
+ *
+ * Tokens are exposed to Tailwind v4 via @theme so utilities like
+ * `bg-charcoal`, `text-amber`, `border-line` work throughout.
+ */
+@theme {
+  /* Surfaces */
+  --color-cream: #f7f6f2; /* app background (off-white) */
+  --color-paper: #ffffff; /* card / container surface */
+  --color-charcoal: #1a1a1a; /* primary text / dark surfaces */
+  --color-charcoal-800: #242424; /* elevated dark surface */
+  --color-charcoal-700: #333333;
+
+  /* Warm slate (secondary text, muted UI) */
+  --color-slate-ink: #4a4a48;
+  --color-slate-muted: #6f6f6a;
+  --color-slate-faint: #9a9a94;
+
+  /* Lines / borders */
+  --color-line: #e4e2db; /* default solid border on light */
+  --color-line-strong: #cfccc2;
+  --color-line-dark: #3a3a3a; /* border on dark surfaces */
+
+  /* Accents */
+  --color-amber: #ffc107; /* primary energetic accent */
+  --color-amber-600: #e0a800;
+  --color-amber-050: #fff8e1;
+  --color-emerald: #10b981; /* success / go / positive */
+  --color-emerald-600: #059669;
+  --color-emerald-050: #e7f8f1;
+
+  /* Semantic */
+  --color-danger: #e5484d;
+  --color-danger-050: #fdecec;
+  --color-info: #2563eb;
+
+  /* Radius scale (sharp, not pill-heavy) */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Subtle, layered shadows (no glow) */
+  --shadow-card: 0 1px 2px rgba(26, 26, 26, 0.06), 0 2px 8px rgba(26, 26, 26, 0.05);
+  --shadow-pop: 0 8px 24px rgba(26, 26, 26, 0.12);
+
+  /* Typography */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* ── Base ──────────────────────────────────────────────────── */
 html,
 body,
 #root {
-	min-height: 100%;
-	overscroll-behavior: none;
+  min-height: 100%;
+  overscroll-behavior: none;
 }
 
 body {
-	margin: 0;
+  margin: 0;
+  background-color: var(--color-cream);
+  color: var(--color-charcoal);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Sharp, legible headings */
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.02em;
+}
+
+/* ── Reusable component classes ────────────────────────────── */
+@layer components {
+  /* Solid container: the workhorse card of the design system */
+  .sw-card {
+    background-color: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Primary action — charcoal, high contrast */
+  .sw-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    padding: 0.7rem 1.25rem;
+    transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .sw-btn:active {
+    transform: translateY(1px);
+  }
+  .sw-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .sw-btn-primary {
+    background-color: var(--color-charcoal);
+    color: var(--color-paper);
+  }
+  .sw-btn-primary:hover:not(:disabled) {
+    background-color: var(--color-charcoal-700);
+  }
+
+  /* Accent action — amber, for high-emphasis CTAs */
+  .sw-btn-accent {
+    background-color: var(--color-amber);
+    color: var(--color-charcoal);
+  }
+  .sw-btn-accent:hover:not(:disabled) {
+    background-color: var(--color-amber-600);
+  }
+
+  /* Success / go action — emerald */
+  .sw-btn-go {
+    background-color: var(--color-emerald);
+    color: var(--color-paper);
+  }
+  .sw-btn-go:hover:not(:disabled) {
+    background-color: var(--color-emerald-600);
+  }
+
+  /* Secondary / outline */
+  .sw-btn-outline {
+    background-color: var(--color-paper);
+    color: var(--color-charcoal);
+    border-color: var(--color-line-strong);
+  }
+  .sw-btn-outline:hover:not(:disabled) {
+    background-color: var(--color-cream);
+  }
+
+  /* Ghost danger */
+  .sw-btn-danger {
+    background-color: var(--color-danger-050);
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+  }
+
+  /* Text input */
+  .sw-input {
+    width: 100%;
+    background-color: var(--color-paper);
+    border: 1px solid var(--color-line-strong);
+    border-radius: var(--radius-md);
+    padding: 0.65rem 0.9rem;
+    color: var(--color-charcoal);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .sw-input::placeholder {
+    color: var(--color-slate-faint);
+  }
+  .sw-input:focus {
+    border-color: var(--color-amber);
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.18);
+  }
+  .sw-input-error {
+    border-color: var(--color-danger);
+  }
+  .sw-input-error:focus {
+    box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.18);
+  }
+
+  /* Chip / badge */
+  .sw-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-line);
+    background-color: var(--color-cream);
+    color: var(--color-slate-ink);
+  }
+  .sw-chip-amber {
+    background-color: var(--color-amber-050);
+    border-color: var(--color-amber);
+    color: var(--color-amber-600);
+  }
+  .sw-chip-emerald {
+    background-color: var(--color-emerald-050);
+    border-color: var(--color-emerald);
+    color: var(--color-emerald-600);
+  }
+
+  /* Section label (kicker) */
+  .sw-kicker {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-amber-600);
+  }
+}
+
+/* Slide-up drawer animation (offer drawer, chat) */
+@keyframes sw-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.sw-animate-slide-up {
+  animation: sw-slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes sw-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.sw-animate-fade-in {
+  animation: sw-fade-in 0.2s ease;
 }

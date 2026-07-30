@@ -30,6 +30,15 @@ router.post("/login",
 // Protected route to get driver profile
 router.get("/profile", authDriver, driverController.getDriverProfile);
 
+// Toggle online/offline availability
+router.post("/online", authDriver, driverController.setOnlineStatus);
+
+// Push current location (GeoJSON persisted server-side)
+router.post("/location", authDriver, driverController.updateLocation);
+
+// Analytics dashboard (stats, rating, weekly breakdown)
+router.get("/dashboard", authDriver, driverController.getDashboard);
+
 // Route for driver logout
 router.get("/logout", authDriver, driverController.logoutDriver);
 
