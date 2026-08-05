@@ -1,105 +1,104 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { IdCard, LogOut, Menu, Settings, User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from "react";
+import { LogOut, Menu, Settings, User, IdCard } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { fullNameOf } from "../lib/format";
 
-const Header = ({ title }) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+/**
+ * Header — the fixed top bar for the rider/driver dashboards.
+ *
+ * Reads identity from AuthContext (no direct localStorage), shows a greeting,
+ * and exposes a profile menu with logout. Solid design-system surface: paper
+ * background, charcoal text, a single hairline border, no blur.
+ *
+ * @param {object} props
+ * @param {string} [props.title] - overrides the default "Welcome, <name>" greeting
+ */
+export default function Header({ title }) {
+  const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { user, role, logout } = useAuth();
+  const menuRef = useRef(null);
 
-  const handleMenuClick = () => {
-    setIsMenuOpen((prev) => !prev);
+  // Close the menu on outside click.
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  const firstName = user?.fullname?.firstname || fullNameOf(user?.fullname)?.split(" ")[0];
+  const fallback = role === "driver" ? "Driver" : "Rider";
+  const resolvedTitle = title || `Welcome, ${firstName || fallback}`;
+
+  const handleLogout = async () => {
+    setOpen(false);
+    await logout();
+    navigate(role === "driver" ? "/driver/login" : "/rider/login");
   };
-
-  const handleLogoutClick = async () => {
-    setIsMenuOpen(false);
-
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
-    const isDriver = role === 'driver';
-    const apiPath = isDriver ? '/api/drivers/logout' : '/api/riders/logout';
-
-    try {
-      if (token) {
-        await axios.get(`${import.meta.env.VITE_BASE_URL}${apiPath}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
-      localStorage.removeItem('firstName');
-
-      navigate(isDriver ? '/driver/login' : '/rider/login');
-    }
-  };
-
-  const role = localStorage.getItem('role');
-  const firstName = localStorage.getItem('firstName');
-  const fallbackName = role === 'driver' ? 'Driver' : 'Rider';
-  const resolvedTitle = title || `Welcome ${firstName || fallbackName}`;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 border-b border-line bg-paper">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <button
-          type="button"
-          onClick={handleMenuClick}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition hover:bg-slate-200"
-          aria-label="Open menu"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-
-        <h3 className="text-base font-semibold text-slate-800 sm:text-lg">{resolvedTitle}</h3>
-
-        <button
-          type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white transition hover:bg-slate-800"
-          aria-label="Open profile"
-        >
-          <User className="h-5 w-5" />
-        </button>
-      </div>
-
-      {isMenuOpen && (
-        <div className="mx-4 mb-3 rounded-xl border border-slate-200 bg-white p-2 shadow-lg sm:mx-6 lg:mx-8">
-          <button
-            type="button"
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
-          >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100">
-              <IdCard className="h-4 w-4" />
-            </span>
-            Profile
-          </button>
-          <button
-            type="button"
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
-          >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100">
-              <Settings className="h-4 w-4" />
-            </span>
-            Settings
-          </button>
-          <button
-            type="button"
-            onClick={handleLogoutClick}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50"
-          >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-red-100">
-              <LogOut className="h-4 w-4" />
-            </span>
-            Logout
-          </button>
+        {/* Brand */}
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-charcoal text-sm font-black text-amber">
+            S
+          </span>
+          <span className="text-lg font-black tracking-tight text-charcoal">Swaari</span>
         </div>
-      )}
+
+        {/* Greeting (hidden on the smallest screens) */}
+        <h3 className="hidden text-sm font-semibold text-slate-ink sm:block">{resolvedTitle}</h3>
+
+        {/* Profile menu */}
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-charcoal text-paper transition hover:bg-charcoal-700"
+            aria-label="Open profile menu"
+            aria-expanded={open}
+          >
+            <User className="h-5 w-5" />
+          </button>
+
+          {open && (
+            <div className="absolute right-0 mt-2 w-52 rounded-lg border border-line bg-paper p-1.5 sw-animate-fade-in" style={{ boxShadow: "var(--shadow-pop)" }}>
+              <div className="border-b border-line px-3 py-2">
+                <p className="truncate text-sm font-bold text-charcoal">{fullNameOf(user?.fullname) || fallback}</p>
+                <p className="text-xs capitalize text-slate-muted">{role || "account"}</p>
+              </div>
+              <MenuItem icon={IdCard} label="Profile" />
+              <MenuItem icon={Settings} label="Settings" />
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="mt-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium text-danger transition hover:bg-danger-050"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </header>
   );
-};
+}
 
-export default Header;
+/** A single (non-destructive) menu row. */
+function MenuItem({ icon: Icon, label }) {
+  return (
+    <button
+      type="button"
+      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-slate-ink transition hover:bg-cream"
+    >
+      <Icon className="h-4 w-4 text-slate-muted" />
+      {label}
+    </button>
+  );
+}

@@ -1,22 +1,32 @@
-import { useState, useContext } from "react";
-import { ChevronLeft } from "lucide-react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
-import DataContext from "../../context/DataContext";
+import { Mail, Lock } from "lucide-react";
+import api from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
+import AuthShell from "../../components/auth/AuthShell";
+import Input from "../../components/ui/Input";
+import Button from "../../components/ui/Button";
+import toast from "react-hot-toast";
 
-const Driverlogin = () => {
-  const { setDriver } = useContext(DataContext);
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * DriverLogin — email/password sign-in for drivers.
+ *
+ * Mirrors RiderLogin but posts to /api/drivers/login and routes to the driver
+ * workspace. AuthContext.login() stores role='driver' from the API response.
+ */
+export default function DriverLogin() {
+  const { login } = useAuth();
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({ email: "", password: "" });
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [serverError, setServerError] = useState("");
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const [loading, setLoading] = useState(false);
 
   const validateEmail = (email) => {
     if (!email.trim()) return "Email is required";
-    if (!emailRegex.test(email)) return "Invalid email format";
+    if (!EMAIL_REGEX.test(email)) return "Enter a valid email address";
     return "";
   };
 
@@ -28,163 +38,79 @@ const Driverlogin = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-
-    if (name === "email") {
-      setErrors({ ...errors, email: validateEmail(value) });
-    } else if (name === "password") {
-      setErrors({ ...errors, password: validatePassword(value) });
-    }
+    setFormData((f) => ({ ...f, [name]: value }));
+    setErrors((errs) => ({
+      ...errs,
+      [name]: name === "email" ? validateEmail(value) : validatePassword(value),
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const emailError = validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
-
     if (emailError || passwordError) {
       setErrors({ email: emailError, password: passwordError });
       return;
     }
 
+    setLoading(true);
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/api/drivers/login`, {
+      const res = await api.post("/api/drivers/login", {
         email: formData.email,
         password: formData.password,
       });
-
-      if (response.status === 200) {
-        const payload = response.data?.entity ?? response.data;
-        const firstName = payload?.fullname?.firstname || payload?.fullName?.firstName || 'Driver';
-
-        setServerError("");
-        setDriver(payload);
-        localStorage.setItem("token", response.data.accessToken);
-        localStorage.setItem("role", "driver");
-        localStorage.setItem("firstName", firstName);
-        setShowSuccess(true);
-        setTimeout(() => {
-          navigate("/driver/dashboard");
-        }, 2000);
-      }
-    } catch (error) {
-      setServerError(error.response?.data?.message || "Login failed. Please try again.");
-      setShowSuccess(false);
+      login(res.data); // { accessToken, role: 'driver', entity }
+      toast.success(`Welcome back, ${res.data.entity?.fullname?.firstname || "driver"}!`);
+      navigate("/driver/dashboard", { replace: true });
+    } catch (err) {
+      toast.error(err.message || "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <>
-      {/* Logo */}
-      <div className="absolute top-4 left-4 z-10">
-        <h1
-          className="text-4xl md:text-6xl font-black text-black"
-          style={{ fontFamily: "'Inter', 'Inter ExtraBold', sans-serif" }}
-        >
-          Sawari
-        </h1>
-      </div>
-
-      {/* Main container with background */}
-      <div
-        className="min-h-screen bg-cover bg-center bg-no-repeat flex items-start md:items-center justify-center px-0 pt-24 pb-16"
-        style={{ backgroundImage: "url('/trafficLights.png')" }}
-      >
-        {/* Login form card */}
-        <div className="w-screen max-w-none sm:w-[calc(100vw-1rem)] sm:max-w-6xl bg-black/40 backdrop-blur-sm p-8 rounded-none sm:rounded-3xl shadow-2xl">
-          <h2 className="text-3xl font-bold text-white mb-2 text-center">Driver Login</h2>
-          <div className="mx-auto mb-6 h-1 w-28 rounded-full bg-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.9)]" />
-
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-            {serverError && (
-              <div className="bg-red-500/30 border border-red-400 text-red-200 px-4 py-3 rounded-lg">
-                {serverError}
-              </div>
-            )}
-            <div className="flex flex-col gap-2">
-              <label htmlFor="email" className="text-white font-semibold">
-                Email:
-              </label>
-              <input
-                type="text"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="abc@example.com"
-                className="px-4 text-white py-3 rounded-lg bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-              {errors.email && <span className="text-red-400 text-sm">{errors.email}</span>}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label htmlFor="password" className="text-white font-semibold">
-                Password:
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="********"
-                className="px-4 py-3 text-white rounded-lg bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-              {errors.password && <span className="text-red-400 text-sm">{errors.password}</span>}
-            </div>
-
-            <button
-              type="submit"
-              className="mt-4 px-8 py-3 bg-orange-600 text-white text-lg rounded-lg hover:bg-orange-700 transition font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Login
-            </button>
-          </form>
-
-          {/* Sign up link */}
-          <p className="text-center text-white mt-6">
-            Don't have an account?{" "}
-            <Link to="/driver/signup" className="font-bold text-blue-300 hover:text-blue-200 underline">
-              Sign up
-            </Link>
-          </p>
-        </div>
-      </div>
-
-      {/* Back button */}
-      <Link
-        to="/get-started"
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/80 hover:bg-white p-3 rounded-full shadow-lg transition-all hover:scale-110"
-        title="Back"
-      >
-        <ChevronLeft className="h-6 w-6 text-black" />
-      </Link>
-
-      {/* Success Message Overlay */}
-      {showSuccess && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="bg-black/50 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border border-white/10 max-w-5xl w-full mx-6">
-            <div className="text-center">
-              <div className="mb-4 flex justify-center">
-                <div className="bg-green-500/30 p-4 rounded-full">
-                  <svg className="w-12 h-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Login Successful!</h3>
-              <p className="text-white/80 mb-4">Redirecting to home...</p>
-              <div className="flex justify-center gap-2">
-                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    <AuthShell
+      title="Driver Login"
+      subtitle="Log in to go online and start earning."
+      accent="emerald"
+      footer={
+        <>
+          New to driving with us?{" "}
+          <Link to="/driver/signup" className="font-bold text-emerald-600 hover:underline">
+            Create an account
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Input
+          name="email"
+          type="email"
+          label="Email"
+          placeholder="you@example.com"
+          icon={Mail}
+          autoComplete="email"
+          value={formData.email}
+          onChange={handleChange}
+          error={errors.email}
+        />
+        <Input
+          name="password"
+          type="password"
+          label="Password"
+          placeholder="••••••••"
+          icon={Lock}
+          autoComplete="current-password"
+          value={formData.password}
+          onChange={handleChange}
+          error={errors.password}
+        />
+        <Button type="submit" variant="go" size="lg" fullWidth loading={loading} className="mt-2">
+          Log In
+        </Button>
+      </form>
+    </AuthShell>
   );
-};
-
-export default Driverlogin;
+}
