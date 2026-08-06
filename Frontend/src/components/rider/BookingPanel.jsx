@@ -1,12 +1,12 @@
 import { ArrowRight, Clock, Route } from "lucide-react";
 import PlaceSearch from "./PlaceSearch";
-import TierSelector from "./TierSelector";
+import VehicleSelector from "./VehicleSelector";
 import PaymentToggle from "./PaymentToggle";
 import Button from "../ui/Button";
 import { formatDistance, formatDuration } from "../../lib/format";
 
 /**
- * BookingPanel — the booking-stage form: pickup, dropoff, vehicle tier, payment,
+ * BookingPanel — the booking-stage form: pickup, dropoff, vehicle type, payment,
  * and the request CTA. Fares refresh automatically as endpoints change.
  *
  * Pure presentational component driven by the useRideFlow state; all handlers
@@ -19,8 +19,8 @@ export default function BookingPanel({
   setPickup,
   dropoff,
   setDropoff,
-  tier,
-  setTier,
+  vehicleType,
+  setVehicleType,
   paymentMethod,
   setPaymentMethod,
   estimate,
@@ -59,11 +59,11 @@ export default function BookingPanel({
         </div>
       )}
 
-      {/* Vehicle tier */}
+      {/* Vehicle type */}
       {(pickup && dropoff) || estimating ? (
         <div>
           <h2 className="sw-kicker mb-2">Choose a ride</h2>
-          <TierSelector tiers={estimate?.tiers} value={tier} onChange={setTier} loading={estimating} />
+          <VehicleSelector options={estimate?.options} value={vehicleType} onChange={setVehicleType} loading={estimating} />
         </div>
       ) : null}
 

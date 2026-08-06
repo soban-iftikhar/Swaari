@@ -35,9 +35,9 @@ export default function useRideFlow() {
   // ── Booking inputs ─────────────────────────────────────
   const [pickup, setPickup] = useState(null); // { address, lat, lng }
   const [dropoff, setDropoff] = useState(null);
-  const [tier, setTier] = useState("economy");
+  const [vehicleType, setVehicleType] = useState("bike");
   const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [estimate, setEstimate] = useState(null); // { distanceMeters, durationSeconds, tiers }
+  const [estimate, setEstimate] = useState(null); // { distanceMeters, durationSeconds, options }
   const [estimating, setEstimating] = useState(false);
 
   // ── Ride state ─────────────────────────────────────────
@@ -176,7 +176,7 @@ export default function useRideFlow() {
       const res = await api.post("/api/rides", {
         pickup: { address: pickup.address, lat: pickup.lat, lng: pickup.lng },
         dropoff: { address: dropoff.address, lat: dropoff.lat, lng: dropoff.lng },
-        vehicleTier: tier,
+        vehicleType,
         paymentMethod,
       });
       setRide(res.data.ride);
@@ -188,7 +188,7 @@ export default function useRideFlow() {
     } finally {
       setLoading(false);
     }
-  }, [pickup, dropoff, tier, paymentMethod]);
+  }, [pickup, dropoff, vehicleType, paymentMethod]);
 
   /** Accept a driver's offer; the ride advances to the active stage. */
   const acceptBid = useCallback(
@@ -271,7 +271,7 @@ export default function useRideFlow() {
     setPickup(null);
     setDropoff(null);
     setEstimate(null);
-    setTier("economy");
+    setVehicleType("bike");
     setPaymentMethod("cash");
   }, []);
 
@@ -288,8 +288,8 @@ export default function useRideFlow() {
     setPickup,
     dropoff,
     setDropoff,
-    tier,
-    setTier,
+    vehicleType,
+    setVehicleType,
     paymentMethod,
     setPaymentMethod,
     estimate,

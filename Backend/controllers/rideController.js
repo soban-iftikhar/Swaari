@@ -2,7 +2,7 @@ import { validationResult } from "express-validator";
 import asyncHandler from "../utils/asyncHandler.js";
 import rideService from "../services/rideService.js";
 import chatService from "../services/chatService.js";
-import { estimateAllTiers } from "../services/mapsService.js";
+import { estimateFares } from "../services/mapsService.js";
 
 /**
  * Ride controller — thin HTTP layer over rideService / chatService.
@@ -26,8 +26,8 @@ const rejectOnValidationErrors = (req, res) => {
 /**
  * POST /api/rides/estimate
  * Body: { pickup:{lat,lng}, dropoff:{lat,lng} }
- * Returns distance/duration and a fare per tier. Public-friendly (used by the
- * landing page calculator and the booking screen).
+ * Returns distance/duration and a fare per vehicle type. Public-friendly (used
+ * by the landing page calculator and the booking screen).
  */
 const estimate = asyncHandler(async (req, res) => {
   const { pickup, dropoff } = req.body;
@@ -43,7 +43,7 @@ const estimate = asyncHandler(async (req, res) => {
   ) {
     return res.status(400).json({ message: "pickup and dropoff coordinates are required" });
   }
-  const result = await estimateAllTiers(
+  const result = await estimateFares(
     { lat: pickupLat, lng: pickupLng },
     { lat: dropoffLat, lng: dropoffLng },
   );
@@ -80,7 +80,7 @@ const getHistory = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/rides/requests  (driver)
- * Nearby open requests for the driver's tier — powers the trip feed.
+ * Nearby open requests for the driver's vehicle type — powers the trip feed.
  */
 const getOpenRequests = asyncHandler(async (req, res) => {
   const rides = await rideService.getOpenRequestsForDriver(req.authUser._id);
@@ -141,7 +141,7 @@ const rejectBid = asyncHandler(async (req, res) => {
 
 /**
  * POST /api/rides/:id/status  (driver)
- * Body: { status, otp? } — arriving | arrived | ongoing | completed
+ * Body: { status } — arriving | arrived | ongoing | completed
  */
 const updateStatus = asyncHandler(async (req, res) => {
   const ride = await rideService.updateRideStatus({
@@ -149,7 +149,6 @@ const updateStatus = asyncHandler(async (req, res) => {
     actorRole: req.role,
     actorId: req.authUser._id,
     nextStatus: req.body.status,
-    otp: req.body.otp,
   });
   res.status(200).json({ ride });
 });

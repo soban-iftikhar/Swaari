@@ -1,4 +1,4 @@
-import { Phone, MessageSquare, ShieldAlert, X, Star, Navigation, KeyRound } from "lucide-react";
+import { Phone, MessageSquare, ShieldAlert, X, Star, Navigation } from "lucide-react";
 import Button from "../ui/Button";
 import Avatar from "../ui/Avatar";
 import RouteRow from "../ui/RouteRow";
@@ -8,12 +8,13 @@ import toast from "react-hot-toast";
 /**
  * ActiveRidePanel — the tracking stage once a driver is assigned.
  *
- * Shows the live ride status, the assigned driver + vehicle, the pickup OTP the
- * rider shares to start the trip, and the trip actions (chat, call, SOS, cancel).
- * Status advances in real time via socket updates handled upstream.
+ * Shows the live ride status, the assigned driver + vehicle, and the trip
+ * actions (chat, call, SOS, cancel). The trip starts when the driver taps
+ * "Start trip" — no pickup code. Status advances in real time via socket
+ * updates handled upstream.
  *
  * @param {object} props
- * @param {object} props.ride - the active ride (rider view, includes otp)
+ * @param {object} props.ride - the active ride (rider view)
  * @param {number} [props.unreadCount] - unread chat messages badge
  * @param {() => void} props.onOpenChat
  * @param {(reason?:string) => void} props.onCancel
@@ -23,7 +24,7 @@ import toast from "react-hot-toast";
 const STATUS_META = {
   accepted: { label: "Driver assigned", hint: "Your driver is getting ready.", tone: "amber" },
   arriving: { label: "On the way", hint: "Your driver is heading to your pickup.", tone: "amber" },
-  arrived: { label: "Driver has arrived", hint: "Share your pickup code to start.", tone: "emerald" },
+  arrived: { label: "Driver has arrived", hint: "Your driver is here — hop in.", tone: "emerald" },
   ongoing: { label: "On your trip", hint: "Enjoy the ride — sit back and relax.", tone: "emerald" },
 };
 
@@ -32,7 +33,6 @@ export default function ActiveRidePanel({ ride, unreadCount = 0, onOpenChat, onC
   const vehicle = driver.vehicle || {};
   const meta = STATUS_META[ride.status] || STATUS_META.accepted;
   const canCancel = ride.status !== "ongoing";
-  const showOtp = ["accepted", "arriving", "arrived"].includes(ride.status);
 
   return (
     <div className="flex h-full flex-col">
@@ -46,18 +46,6 @@ export default function ActiveRidePanel({ ride, unreadCount = 0, onOpenChat, onC
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto py-4">
-        {/* Pickup OTP */}
-        {showOtp && ride.otp && (
-          <div className="rounded-xl border-2 border-dashed border-amber bg-amber-050 p-4 text-center">
-            <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-600">
-              <KeyRound className="h-3.5 w-3.5" />
-              Pickup code
-            </p>
-            <p className="mt-1 text-4xl font-black tracking-[0.3em] text-charcoal">{ride.otp}</p>
-            <p className="mt-1 text-xs text-slate-muted">Share this with your driver to start the trip.</p>
-          </div>
-        )}
-
         {/* Driver card */}
         <div className="rounded-xl border border-line bg-paper p-4">
           <div className="flex items-center justify-between gap-3">

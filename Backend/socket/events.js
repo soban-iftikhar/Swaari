@@ -22,6 +22,7 @@ export const EVENTS = Object.freeze({
   RIDE_STATUS: "ride:status", // → both (arriving/arrived/ongoing/completed)
   RIDE_DRIVER_LOCATION: "ride:driver-location", // → rider (live tracking)
   RIDE_EXPIRED: "ride:expired", // → rider (no drivers / timed out)
+  DRIVER_STATS_UPDATE: "driver:stats-update", // → driver (live KPI tiles)
 
   // ── Chat (bidirectional) ───────────────────────────────
   CHAT_MESSAGE: "chat:message",

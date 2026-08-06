@@ -124,10 +124,10 @@ function FareCalculatorSection() {
                 </span>
               </div>
               <div className="mt-4 space-y-2">
-                {result.tiers.map((t) => (
-                  <div key={t.tier} className="flex items-center justify-between rounded-lg border border-line bg-cream/50 px-4 py-3">
-                    <span className="font-medium text-charcoal">{t.label}</span>
-                    <span className="text-lg font-bold text-amber">{formatCurrency(t.fare)}</span>
+                {result.options.map((o) => (
+                  <div key={o.type} className="flex items-center justify-between rounded-lg border border-line bg-cream/50 px-4 py-3">
+                    <span className="font-medium text-charcoal">{o.label}</span>
+                    <span className="text-lg font-bold text-amber">{formatCurrency(o.fare)}</span>
                   </div>
                 ))}
               </div>

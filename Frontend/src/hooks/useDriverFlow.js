@@ -134,12 +134,30 @@ export default function useDriverFlow() {
     if (updated?._id) setRide(updated);
   });
 
-  // ── Live: the rider cancelled → back to the feed ───────
+  // ── Live: a ride we can see was cancelled ──────────────
+  // Two cases: the rider cancelled the trip we're assigned to (tear down the
+  // workspace, back to the feed), or a request we saw/bid on during the search
+  // was cancelled (drop it from the feed instantly). Only the first clears our
+  // active ride — a searching bidder with no assignment keeps browsing.
   useSocketEvent(EVENTS.RIDE_CANCELLED, (updated) => {
-    setRide(null);
-    const by = updated?.cancellation?.by;
-    if (by === "rider") toast.error("The rider cancelled the ride");
-    reloadRequests();
+    const cancelledId = updated?._id && String(updated._id);
+    if (!cancelledId) return;
+
+    // Always drop the cancelled request + any bid we placed on it.
+    setRequests((prev) => prev.filter((r) => String(r._id) !== cancelledId));
+    setMyBids((prev) => {
+      if (!prev[cancelledId]) return prev;
+      const next = { ...prev };
+      delete next[cancelledId];
+      return next;
+    });
+
+    // Only tear down the workspace when it's the trip we're assigned to.
+    if (ride && String(ride._id) === cancelledId) {
+      setRide(null);
+      if (updated?.cancellation?.by === "rider") toast.error("The rider cancelled the ride");
+      reloadRequests();
+    }
   });
 
   /** Re-fetch the open-requests feed (after a cancel / returning to idle). */
@@ -191,18 +209,18 @@ export default function useDriverFlow() {
   }, []);
 
   /**
-   * Advance the assigned ride's status.
-   *   arriving → arrived → ongoing (needs the rider's OTP) → completed
+   * Advance the assigned ride's status. GPS geofence auto-advances most of the
+   * lifecycle server-side; this drives the one manual confirmation ("Start trip")
+   * and the localhost override buttons.
+   *   arriving → arrived → ongoing → completed
    * @param {string} next - the target status
-   * @param {string} [otp] - required to start the trip (status === "ongoing")
    */
   const advanceStatus = useCallback(
-    async (next, otp) => {
+    async (next) => {
       if (!ride?._id) return false;
       setLoading(true);
       try {
-        const body = otp ? { status: next, otp } : { status: next };
-        const res = await api.post(`/api/rides/${ride._id}/status`, body);
+        const res = await api.post(`/api/rides/${ride._id}/status`, { status: next });
         if (res.data?.ride) setRide(res.data.ride);
         return true;
       } catch (err) {

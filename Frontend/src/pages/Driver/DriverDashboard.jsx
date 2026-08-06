@@ -13,21 +13,9 @@ import useDriverFlow from "../../hooks/useDriverFlow";
 import useDriverPresence from "../../hooks/useDriverPresence";
 import useRideChat from "../../hooks/useRideChat";
 import { useAuth } from "../../context/AuthContext";
+import { useSocketEvent } from "../../context/SocketContext";
+import { EVENTS } from "../../lib/socketEvents";
 import { fullNameOf, coordsOf } from "../../lib/format";
-
-/**
- * Maps a concrete vehicle type to the service tier (mirrors the backend's
- * VEHICLE_TIER_BY_TYPE). The `tier` virtual isn't serialized on the driver
- * profile, so we derive it here for display.
- */
-const VEHICLE_TIER_BY_TYPE = {
-  bike: "economy",
-  rickshaw: "economy",
-  mini: "economy",
-  sedan: "comfort",
-  suv: "executive",
-  van: "executive",
-};
 
 /**
  * DriverDashboard — the composing shell for the driver workspace, the mirror of
@@ -40,7 +28,7 @@ const VEHICLE_TIER_BY_TYPE = {
  * trip and relay live to the rider.
  */
 export default function DriverDashboard() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const flow = useDriverFlow();
   const [chatOpen, setChatOpen] = useState(false);
 
@@ -48,7 +36,10 @@ export default function DriverDashboard() {
   const presence = useDriverPresence({ rideId });
   const chat = useRideChat(rideId, "driver", chatOpen);
 
-  const tier = VEHICLE_TIER_BY_TYPE[user?.vehicle?.type] || "economy";
+  // Live KPI updates: the server pushes fresh stats/rating the moment a trip
+  // settles (or the rider rates us). AuthContext sits above SocketProvider, so
+  // the listener lives here and patches the cached profile the EarningsBar reads.
+  useSocketEvent(EVENTS.DRIVER_STATS_UPDATE, (patch) => updateUser(patch));
 
   // Map coordinates: our own position + (during a trip) the assigned pickup/dropoff.
   // A persisted ride stores endpoints as GeoJSON, so derive lat/lng via coordsOf.
@@ -78,7 +69,7 @@ export default function DriverDashboard() {
                 <RequestFeed
                   online={presence.online}
                   toggling={presence.toggling}
-                  tier={tier}
+                  vehicleType={user?.vehicle?.type}
                   geolocationError={presence.geolocationError}
                   onGoOnline={presence.goOnline}
                   onGoOffline={presence.goOffline}

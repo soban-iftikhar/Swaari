@@ -61,7 +61,7 @@ export default function SearchingPanel({ ride, bids, onAccept, onReject, onCance
           {ride?.durationSeconds != null && <span>{formatDuration(ride.durationSeconds)}</span>}
           {estFare != null && (
             <span className="font-semibold text-slate-ink">
-              Est. {formatCurrency(estFare)} · <span className="capitalize">{ride.vehicleTier}</span>
+              Est. {formatCurrency(estFare)} · <span className="capitalize">{ride.vehicleType}</span>
             </span>
           )}
         </div>

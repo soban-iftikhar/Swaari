@@ -7,6 +7,7 @@ export const EVENTS = Object.freeze({
   DRIVER_GO_ONLINE: "driver:go-online",
   DRIVER_GO_OFFLINE: "driver:go-offline",
   DRIVER_LOCATION_UPDATE: "driver:location-update",
+  DRIVER_STATS_UPDATE: "driver:stats-update",
 
   // Ride lifecycle (server → clients)
   RIDE_REQUESTED: "ride:requested",

@@ -13,7 +13,7 @@ import EmptyState from "../ui/EmptyState";
  * @param {object} props
  * @param {boolean} props.online
  * @param {boolean} [props.toggling]
- * @param {string} [props.tier]
+ * @param {string} [props.vehicleType]
  * @param {string} [props.geolocationError]
  * @param {() => void} props.onGoOnline
  * @param {() => void} props.onGoOffline
@@ -26,7 +26,7 @@ import EmptyState from "../ui/EmptyState";
 export default function RequestFeed({
   online,
   toggling,
-  tier,
+  vehicleType,
   geolocationError,
   onGoOnline,
   onGoOffline,
@@ -43,7 +43,7 @@ export default function RequestFeed({
         <OnlineToggle
           online={online}
           toggling={toggling}
-          tier={tier}
+          vehicleType={vehicleType}
           geolocationError={geolocationError}
           onGoOnline={onGoOnline}
           onGoOffline={onGoOffline}

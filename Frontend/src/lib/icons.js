@@ -20,20 +20,20 @@ export {
   TbCurrentLocation, // "use my location"
   TbClockHour4, // ETA / duration
   TbCoins, // fare / earnings
-  TbShieldCheck, // OTP / verified pickup
+  TbCarSuv, // suv vehicle glyph
 } from "react-icons/tb";
 
 export {
-  PiMotorcycleFill, // bike tier
-  PiCarProfileFill, // sedan / comfort tier
-  PiVanFill, // van / executive tier
+  PiMotorcycleFill, // bike
+  PiCarProfileFill, // sedan / car
+  PiVanFill, // van
   PiStarFill, // rating (filled)
   PiSteeringWheelFill,
 } from "react-icons/pi";
 
 export {
-  RiEBike2Fill, // rickshaw / mini
-  RiTaxiFill, // taxi accent
+  RiEBike2Fill, // e-bike accent
+  RiTaxiFill, // rickshaw / tuk-tuk
 } from "react-icons/ri";
 
 // ── Utilitarian UI (lucide-react) ──────────────────────────────
@@ -69,13 +69,19 @@ export {
 } from "lucide-react";
 
 /**
- * Vehicle-tier → distinctive glyph, used by the tier selector and vehicle chips.
- * Keeps the "which icon for which tier" decision in one spot.
+ * Vehicle-type → distinctive glyph, used by the vehicle selector and vehicle
+ * chips. Keeps the "which icon for which vehicle" decision in one spot; the keys
+ * mirror the backend VEHICLE_PRICING types.
  */
 import { PiMotorcycleFill, PiCarProfileFill, PiVanFill } from "react-icons/pi";
+import { TbCar, TbCarSuv } from "react-icons/tb";
+import { RiTaxiFill } from "react-icons/ri";
 
-export const TIER_ICON = {
-  economy: PiMotorcycleFill,
-  comfort: PiCarProfileFill,
-  executive: PiVanFill,
+export const VEHICLE_ICON = {
+  bike: PiMotorcycleFill,
+  rickshaw: RiTaxiFill,
+  mini: TbCar,
+  sedan: PiCarProfileFill,
+  suv: TbCarSuv,
+  van: PiVanFill,
 };

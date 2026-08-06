@@ -11,14 +11,14 @@ import toast from "react-hot-toast";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NAME_REGEX = /^[a-zA-Z\s]{3,}$/;
 
-// Vehicle types map to service tiers on the backend (see VEHICLE_TIER_BY_TYPE).
+// Concrete vehicle types — each maps 1:1 to a fare on the backend (VEHICLE_PRICING).
 const VEHICLE_TYPES = [
-  { value: "bike", label: "Bike · Economy" },
-  { value: "rickshaw", label: "Rickshaw · Economy" },
-  { value: "mini", label: "Mini · Economy" },
-  { value: "sedan", label: "Sedan · Comfort" },
-  { value: "suv", label: "SUV · Executive" },
-  { value: "van", label: "Van · Executive" },
+  { value: "bike", label: "Bike" },
+  { value: "rickshaw", label: "Rickshaw (Tuk-tuk)" },
+  { value: "mini", label: "Mini" },
+  { value: "sedan", label: "Car" },
+  { value: "suv", label: "SUV" },
+  { value: "van", label: "Van" },
 ];
 
 /**

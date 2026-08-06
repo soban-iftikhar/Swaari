@@ -1,36 +1,40 @@
 import { Users } from "lucide-react";
-import { TIER_ICON } from "../../lib/icons";
+import { VEHICLE_ICON } from "../../lib/icons";
 import { formatCurrency } from "../../lib/format";
 
 /**
- * TierSelector — vehicle tier cards (economy / comfort / executive) with live
- * per-tier fares. Selection is a solid amber-outlined card; no gradients.
+ * VehicleSelector — concrete vehicle-type cards (bike · rickshaw · mini · car ·
+ * SUV · van) with live per-type fares. Selection is a solid amber-outlined card;
+ * no gradients. The keys mirror the backend VEHICLE_PRICING types.
  *
  * @param {object} props
- * @param {Array<{tier:string,label:string,fare:number}>} props.tiers - from the estimate API
- * @param {string} props.value - selected tier key
- * @param {(tier:string) => void} props.onChange
+ * @param {Array<{type:string,label:string,fare:number}>} props.options - from the estimate API
+ * @param {string} props.value - selected vehicle type key
+ * @param {(type:string) => void} props.onChange
  * @param {boolean} [props.loading] - estimate in flight (show skeleton fares)
  */
 
-const TIER_META = {
-  economy: { icon: TIER_ICON.economy, desc: "Affordable everyday rides", seats: 4 },
-  comfort: { icon: TIER_ICON.comfort, desc: "Newer cars, more room", seats: 4 },
-  executive: { icon: TIER_ICON.executive, desc: "Premium vehicles", seats: 4 },
+const VEHICLE_META = {
+  bike: { desc: "Quick & wallet-friendly", seats: 1 },
+  rickshaw: { desc: "Breezy tuk-tuk hops", seats: 3 },
+  mini: { desc: "Compact city rides", seats: 4 },
+  sedan: { desc: "Comfortable car rides", seats: 4 },
+  suv: { desc: "Extra room & comfort", seats: 6 },
+  van: { desc: "Groups & luggage", seats: 10 },
 };
 
-const ORDER = ["economy", "comfort", "executive"];
+const ORDER = ["bike", "rickshaw", "mini", "sedan", "suv", "van"];
 
-export default function TierSelector({ tiers, value, onChange, loading }) {
-  // Index fares by tier for quick lookup; fall back to label-only cards.
-  const fareByTier = Object.fromEntries((tiers || []).map((t) => [t.tier, t]));
+export default function VehicleSelector({ options, value, onChange, loading }) {
+  // Index fares by vehicle type for quick lookup; fall back to label-only cards.
+  const fareByType = Object.fromEntries((options || []).map((o) => [o.type, o]));
 
   return (
     <div className="flex flex-col gap-2">
       {ORDER.map((key) => {
-        const meta = TIER_META[key];
-        const info = fareByTier[key];
-        const Icon = meta.icon;
+        const meta = VEHICLE_META[key];
+        const info = fareByType[key];
+        const Icon = VEHICLE_ICON[key];
         const selected = value === key;
         return (
           <button
@@ -52,7 +56,7 @@ export default function TierSelector({ tiers, value, onChange, loading }) {
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-charcoal capitalize">{info?.label || key}</span>
+                <span className="font-bold capitalize text-charcoal">{info?.label || key}</span>
                 <span className="inline-flex items-center gap-0.5 text-xs text-slate-muted">
                   <Users className="h-3 w-3" />
                   {meta.seats}

@@ -56,8 +56,8 @@ export default function RiderDashboard() {
               setPickup={flow.setPickup}
               dropoff={flow.dropoff}
               setDropoff={flow.setDropoff}
-              tier={flow.tier}
-              setTier={flow.setTier}
+              vehicleType={flow.vehicleType}
+              setVehicleType={flow.setVehicleType}
               paymentMethod={flow.paymentMethod}
               setPaymentMethod={flow.setPaymentMethod}
               estimate={flow.estimate}

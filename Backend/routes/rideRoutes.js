@@ -27,9 +27,9 @@ router.post(
     body("dropoff.address").notEmpty().withMessage("Dropoff address is required"),
     body("dropoff.lat").isFloat().withMessage("Dropoff latitude is required"),
     body("dropoff.lng").isFloat().withMessage("Dropoff longitude is required"),
-    body("vehicleTier")
-      .isIn(["economy", "comfort", "executive"])
-      .withMessage("Invalid vehicle tier"),
+    body("vehicleType")
+      .isIn(["bike", "rickshaw", "mini", "sedan", "suv", "van"])
+      .withMessage("Invalid vehicle type"),
     body("paymentMethod")
       .optional()
       .isIn(["cash", "online"])
@@ -89,7 +89,6 @@ router.post(
     body("status")
       .isIn(["arriving", "arrived", "ongoing", "completed"])
       .withMessage("Invalid status"),
-    body("otp").optional().isString(),
   ],
   rideController.updateStatus,
 );

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Phone, MessageSquare, X, Star, Navigation, KeyRound, Car, Flag, CheckCircle2 } from "lucide-react";
+import { Phone, MessageSquare, X, Star, Navigation, Flag, CheckCircle2 } from "lucide-react";
 import Button from "../ui/Button";
 import Avatar from "../ui/Avatar";
 import RouteRow from "../ui/RouteRow";
@@ -10,28 +9,28 @@ import toast from "react-hot-toast";
  * DriverTripPanel — the assigned-stage workspace, the driver's mirror of the
  * rider's ActiveRidePanel.
  *
- * Shows the live trip status, the rider + route, and a single primary action
- * that advances the ride through its lifecycle:
- *   accepted → "Start heading over"  (arriving)
- *   arriving → "I've arrived"        (arrived)
- *   arrived  → OTP entry → "Start trip" (ongoing)
- *   ongoing  → "Complete trip"       (completed)
+ * GPS geofencing drives the lifecycle automatically off the driver's live
+ * location stream: accepted → arriving (on the first ping) → arrived (near the
+ * pickup) → [driver taps Start trip once] → ongoing → completed (near the
+ * dropoff). The only human confirmation is the single "Start trip" tap. The
+ * small "Mark arrived" / "Complete trip" buttons are override fallbacks for when
+ * GPS can't advance the trip on its own (e.g. localhost, denied location).
  * Plus chat, a demo call button, and cancel (allowed until the trip starts).
  *
  * @param {object} props
- * @param {object} props.ride - the assigned ride (driver view, no OTP)
+ * @param {object} props.ride - the assigned ride (driver view)
  * @param {number} [props.unreadCount] - unread chat badge
  * @param {() => void} props.onOpenChat
- * @param {(next:string, otp?:string) => Promise<boolean>} props.onAdvance
+ * @param {(next:string) => Promise<boolean>} props.onAdvance
  * @param {() => Promise<boolean>} props.onComplete
  * @param {(reason?:string) => void} props.onCancel
  * @param {boolean} [props.loading]
  */
 
 const STATUS_META = {
-  accepted: { label: "Ride assigned", hint: "Head to the pickup point when ready.", tone: "amber" },
+  accepted: { label: "Ride assigned", hint: "Heading to the pickup — starting navigation.", tone: "amber" },
   arriving: { label: "En route to pickup", hint: "Driving to the rider's pickup point.", tone: "amber" },
-  arrived: { label: "At pickup", hint: "Ask the rider for their 4-digit code to start.", tone: "emerald" },
+  arrived: { label: "At pickup", hint: "You've arrived. Tap Start trip once the rider is in.", tone: "emerald" },
   ongoing: { label: "Trip in progress", hint: "Drive safely to the dropoff.", tone: "emerald" },
 };
 
@@ -44,16 +43,9 @@ export default function DriverTripPanel({
   onCancel,
   loading,
 }) {
-  const [otp, setOtp] = useState("");
   const rider = ride.rider || {};
   const meta = STATUS_META[ride.status] || STATUS_META.accepted;
   const canCancel = ride.status !== "ongoing";
-
-  const startTrip = async () => {
-    if (otp.length !== 4) return;
-    const ok = await onAdvance("ongoing", otp);
-    if (ok) setOtp("");
-  };
 
   return (
     <div className="flex h-full flex-col">
@@ -112,52 +104,24 @@ export default function DriverTripPanel({
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-muted">
           <span>{formatDistance(ride.distanceMeters)}</span>
           <span>{formatDuration(ride.durationSeconds)}</span>
-          <span className="capitalize">{ride.vehicleTier}</span>
+          <span className="capitalize">{ride.vehicleType}</span>
         </div>
-
-        {/* OTP entry — only when at pickup, waiting to start */}
-        {ride.status === "arrived" && (
-          <div className="rounded-xl border-2 border-dashed border-amber bg-amber-050 p-4">
-            <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-600">
-              <KeyRound className="h-3.5 w-3.5" />
-              Enter pickup code
-            </p>
-            <p className="mt-1 text-xs text-slate-muted">Ask the rider for their 4-digit code to start the trip.</p>
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={4}
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="0000"
-              className="sw-input mt-3 text-center text-2xl font-black tracking-[0.5em]"
-            />
-          </div>
-        )}
       </div>
 
       {/* Lifecycle CTA + cancel */}
       <div className="space-y-2 border-t border-line pt-3">
-        {ride.status === "accepted" && (
-          <Button variant="accent" fullWidth icon={Car} onClick={() => onAdvance("arriving")} loading={loading}>
-            Start heading over
-          </Button>
-        )}
-        {ride.status === "arriving" && (
-          <Button variant="accent" fullWidth icon={Flag} onClick={() => onAdvance("arrived")} loading={loading}>
-            I've arrived
-          </Button>
-        )}
+        {/* Primary action: the single Start-trip confirmation once the rider boards. */}
         {ride.status === "arrived" && (
-          <Button
-            variant="go"
-            fullWidth
-            icon={Navigation}
-            onClick={startTrip}
-            loading={loading}
-            disabled={otp.length !== 4}
-          >
+          <Button variant="go" fullWidth icon={Navigation} onClick={() => onAdvance("ongoing")} loading={loading}>
             Start trip
+          </Button>
+        )}
+
+        {/* Secondary overrides — GPS advances these automatically; the buttons are
+            a manual fallback for when it can't (localhost, denied location). */}
+        {ride.status === "arriving" && (
+          <Button variant="outline" fullWidth icon={Flag} onClick={() => onAdvance("arrived")} loading={loading}>
+            Mark arrived
           </Button>
         )}
         {ride.status === "ongoing" && (
@@ -165,6 +129,7 @@ export default function DriverTripPanel({
             Complete trip
           </Button>
         )}
+
         {canCancel && (
           <Button
             variant="ghost"

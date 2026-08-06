@@ -21,12 +21,6 @@ import { EVENTS } from "../socket/events.js";
  * controller layer can map them to HTTP codes.
  */
 
-/** Vehicle `type`s that satisfy a requested tier (reverse of VEHICLE_TIER_BY_TYPE). */
-const TYPES_FOR_TIER = Object.entries(VEHICLE_TIER_BY_TYPE).reduce((acc, [type, tier]) => {
-  (acc[tier] ||= []).push(type);
-  return acc;
-}, {});
-
 /** Build an Error with an attached HTTP status code. */
 function httpError(message, status = 400) {
   const err = new Error(message);
@@ -37,29 +31,32 @@ function httpError(message, status = 400) {
 /** GeoJSON [lng, lat] → { lat, lng } for the maps service. */
 const toLatLng = (coords) => ({ lng: coords[0], lat: coords[1] });
 
-/** Generate a 4-digit pickup OTP as a zero-padded string. */
-function generateOtp() {
-  return String(crypto.randomInt(0, 10000)).padStart(4, "0");
-}
+/**
+ * Proximity radius (meters) for GPS geofence auto-advance. When the driver's
+ * live position falls within this distance of the pickup (→ arrived) or dropoff
+ * (→ completed), the ride advances automatically off the location stream.
+ * Overridable via DRIVER_GEOFENCE_RADIUS_M.
+ */
+const GEOFENCE_RADIUS_M = Number(process.env.DRIVER_GEOFENCE_RADIUS_M) || 80;
 
 const rideService = {
   /**
-   * Create a ride request, compute fare, generate the pickup OTP, and broadcast
-   * to nearby online drivers whose vehicle matches the requested tier.
+   * Create a ride request, compute fare, and broadcast to nearby online drivers
+   * whose vehicle matches the requested type.
    *
    * @param {string} riderId
-   * @param {object} payload - { pickup, dropoff, vehicleTier, paymentMethod }
+   * @param {object} payload - { pickup, dropoff, vehicleType, paymentMethod }
    *   where pickup/dropoff = { address, lng, lat }
    * @returns {Promise<{ride: object, matchedDrivers: number}>}
    */
   async requestRide(riderId, payload) {
-    const { pickup, dropoff, vehicleTier, paymentMethod = "cash" } = payload;
+    const { pickup, dropoff, vehicleType, paymentMethod = "cash" } = payload;
 
     if (!pickup?.address || !dropoff?.address) {
       throw httpError("Pickup and dropoff addresses are required");
     }
-    if (!["economy", "comfort", "executive"].includes(vehicleTier)) {
-      throw httpError("Invalid vehicle tier");
+    if (!VEHICLE_TYPES.includes(vehicleType)) {
+      throw httpError("Invalid vehicle type");
     }
 
     // Prevent overlapping active rides for the same rider.
@@ -75,8 +72,7 @@ const rideService = {
     const dropoffLatLng = { lat: dropoff.lat, lng: dropoff.lng };
 
     const { distanceMeters, durationSeconds } = await getRouteMetrics(pickupLatLng, dropoffLatLng);
-    const fareEstimate = estimateFare(vehicleTier, distanceMeters, durationSeconds);
-    const otp = generateOtp();
+    const fareEstimate = estimateFare(vehicleType, distanceMeters, durationSeconds);
 
     const ride = await Ride.create({
       rider: riderId,
@@ -88,22 +84,21 @@ const rideService = {
         address: dropoff.address,
         location: { type: "Point", coordinates: [dropoff.lng, dropoff.lat] },
       },
-      vehicleTier,
+      vehicleType,
       paymentMethod,
       distanceMeters,
       durationSeconds,
       fareEstimate,
-      otp,
       status: RIDE_STATUS.REQUESTED,
     });
 
     await Rider.findByIdAndUpdate(riderId, { currentRide: ride._id });
 
-    // Find nearby online, available drivers whose vehicle matches the tier.
-    const drivers = await this.findNearbyDrivers(pickupLatLng, vehicleTier);
+    // Find nearby online, available drivers whose vehicle matches the type.
+    const drivers = await this.findNearbyDrivers(pickupLatLng, vehicleType);
     const driverIds = drivers.map((d) => String(d._id));
 
-    // Broadcast the request (without the OTP) to matched drivers in real time.
+    // Broadcast the request to matched drivers in real time.
     const publicRide = await this.getRideById(ride._id);
     emitToDrivers(driverIds, EVENTS.RIDE_REQUESTED, publicRide);
 
@@ -112,20 +107,19 @@ const rideService = {
 
   /**
    * Geospatial search for online + available drivers near a point whose vehicle
-   * type satisfies the requested tier.
+   * type exactly matches the requested type.
    * @param {{lat:number, lng:number}} point
-   * @param {string} tier
+   * @param {string} vehicleType
    * @param {number} [radiusKm] - defaults to DRIVER_SEARCH_RADIUS_KM env
    * @returns {Promise<Array>}
    */
-  async findNearbyDrivers(point, tier, radiusKm) {
+  async findNearbyDrivers(point, vehicleType, radiusKm) {
     const radius = radiusKm || Number(process.env.DRIVER_SEARCH_RADIUS_KM) || 8;
-    const types = TYPES_FOR_TIER[tier] || [];
 
     return Driver.find({
       isOnline: true,
       status: "available",
-      "vehicle.type": { $in: types },
+      "vehicle.type": vehicleType,
       location: {
         $near: {
           $geometry: { type: "Point", coordinates: [point.lng, point.lat] },
@@ -203,7 +197,7 @@ const rideService = {
    * @param {string} riderId
    * @param {string} rideId
    * @param {string} bidId
-   * @returns {Promise<object>} the updated ride (with OTP for the rider)
+   * @returns {Promise<object>} the updated ride
    */
   async acceptBid(riderId, rideId, bidId) {
     const ride = await Ride.findOne({ _id: rideId, rider: riderId });
@@ -239,13 +233,13 @@ const rideService = {
       { status: BID_STATUS.REJECTED },
     );
 
-    const populated = await this.getRideById(ride._id, { withOtp: true });
+    const publicRide = await this.getRideById(ride._id);
 
     // Notify driver (assigned) and rider (confirmed).
-    emitToUser("driver", bid.driver, EVENTS.RIDE_ACCEPTED, populated.forDriver);
-    emitToUser("rider", riderId, EVENTS.RIDE_ACCEPTED, populated.forRider);
+    emitToUser("driver", bid.driver, EVENTS.RIDE_ACCEPTED, publicRide);
+    emitToUser("rider", riderId, EVENTS.RIDE_ACCEPTED, publicRide);
 
-    return populated.forRider;
+    return publicRide;
   },
 
   /**
@@ -276,14 +270,13 @@ const rideService = {
 
   /**
    * Advance a ride through its post-acceptance stages. Validates legal
-   * transitions and emits status to both participants. Starting the trip
-   * requires the correct pickup OTP.
+   * transitions and emits status to both participants.
    *
-   * @param {object} args - { rideId, actorRole, actorId, nextStatus, otp? }
+   * @param {object} args - { rideId, actorRole, actorId, nextStatus }
    * @returns {Promise<object>} updated public ride
    */
-  async updateRideStatus({ rideId, actorRole, actorId, nextStatus, otp }) {
-    const ride = await Ride.findById(rideId).select("+otp");
+  async updateRideStatus({ rideId, actorRole, actorId, nextStatus }) {
+    const ride = await Ride.findById(rideId);
     if (!ride) throw httpError("Ride not found", 404);
 
     // Only the ride's own driver or rider may drive transitions.
@@ -307,13 +300,6 @@ const rideService = {
       throw httpError(`Cannot move from ${ride.status} to ${nextStatus}`, 409);
     }
 
-    // OTP gate for starting the trip.
-    if (nextStatus === RIDE_STATUS.ONGOING) {
-      if (!otp || String(otp) !== String(ride.otp)) {
-        throw httpError("Incorrect pickup code", 401);
-      }
-    }
-
     ride.status = nextStatus;
     const now = new Date();
     if (nextStatus === RIDE_STATUS.ARRIVED) ride.timeline.arrivedAt = now;
@@ -333,18 +319,31 @@ const rideService = {
 
   /**
    * Finalise a completed ride: free the driver, update counters, clear
-   * both parties' currentRide pointers. Mutates the passed ride doc's driver.
+   * both parties' currentRide pointers, and push the driver's fresh stats live.
+   * Mutates the passed ride doc's driver.
    * @param {import('mongoose').Document} ride
    * @private
    */
   async _settleCompletedRide(ride) {
     const fare = ride.fare ?? ride.fareEstimate;
-    await Driver.findByIdAndUpdate(ride.driver, {
-      status: "available",
-      currentRide: null,
-      $inc: { "stats.totalTrips": 1, "stats.totalEarnings": fare },
-    });
+    const driver = await Driver.findByIdAndUpdate(
+      ride.driver,
+      {
+        status: "available",
+        currentRide: null,
+        $inc: { "stats.totalTrips": 1, "stats.totalEarnings": fare },
+      },
+      { new: true },
+    );
     await Rider.findByIdAndUpdate(ride.rider, { currentRide: null });
+
+    // Push the driver's updated KPIs so their dashboard ticks up immediately.
+    if (driver) {
+      emitToUser("driver", ride.driver, EVENTS.DRIVER_STATS_UPDATE, {
+        stats: driver.stats,
+        rating: driver.rating,
+      });
+    }
   },
 
   /**
@@ -370,6 +369,23 @@ const rideService = {
     ride.timeline.cancelledAt = new Date();
     await ride.save();
 
+    // Before clearing bids, gather everyone who can currently *see* this request
+    // so their feed clears instantly (not on a stale 409 when they try to bid):
+    // pending bidders ∪ nearby drivers who saw the RIDE_REQUESTED broadcast.
+    const recipientIds = new Set();
+    if (!ride.driver) {
+      const pendingBids = await Bid.find({ ride: rideId, status: BID_STATUS.PENDING }).select("driver");
+      pendingBids.forEach((b) => recipientIds.add(String(b.driver)));
+
+      if (ride.pickup?.location?.coordinates?.length === 2) {
+        const nearby = await this.findNearbyDrivers(
+          toLatLng(ride.pickup.location.coordinates),
+          ride.vehicleType,
+        );
+        nearby.forEach((d) => recipientIds.add(String(d._id)));
+      }
+    }
+
     // Free the driver and clear ride pointers.
     if (ride.driver) {
       await Driver.findByIdAndUpdate(ride.driver, { status: "available", currentRide: null });
@@ -385,13 +401,22 @@ const rideService = {
     // Also hit personal rooms in case a party hasn't joined the ride room yet.
     emitToUser("rider", ride.rider, EVENTS.RIDE_CANCELLED, publicRide);
     if (ride.driver) emitToUser("driver", ride.driver, EVENTS.RIDE_CANCELLED, publicRide);
+    // And every searching-phase driver who had the request card open.
+    if (recipientIds.size) {
+      emitToDrivers([...recipientIds], EVENTS.RIDE_CANCELLED, publicRide);
+    }
 
     return publicRide;
   },
 
   /**
-   * Persist a driver's live location during an active ride and relay it to the
-   * rider for smooth marker tracking.
+   * Persist a driver's live location during an active ride, relay it to the
+   * rider for smooth marker tracking, and auto-advance the ride lifecycle by
+   * GPS geofence (the primary, tap-free path):
+   *   accepted            → arriving  (on the first ping, any position)
+   *   accepted/arriving   → arrived   (within GEOFENCE_RADIUS_M of pickup)
+   *   ongoing             → completed (within GEOFENCE_RADIUS_M of dropoff)
+   * The rider boarding (arrived → ongoing) stays a manual "Start trip" tap.
    * @param {string} driverId
    * @param {string} rideId
    * @param {{lat:number, lng:number}} coords
@@ -403,7 +428,7 @@ const rideService = {
         driverLocation: { type: "Point", coordinates: [coords.lng, coords.lat] },
       },
       { new: true },
-    ).select("rider");
+    ).select("rider status pickup.location dropoff.location driver");
     if (!ride) return;
 
     // Keep the driver's own profile location fresh too.
@@ -415,6 +440,39 @@ const rideService = {
       rideId: String(rideId),
       coords,
     });
+
+    // Geofence auto-advance. Ownership is already proven (the findOneAndUpdate
+    // matched driver: driverId), so updateRideStatus's driver check passes.
+    let desiredStatus = null;
+    if (ride.status === RIDE_STATUS.ACCEPTED || ride.status === RIDE_STATUS.ARRIVING) {
+      const pickupCoords = ride.pickup?.location?.coordinates;
+      const nearPickup =
+        pickupCoords?.length === 2 &&
+        haversineMeters(coords, toLatLng(pickupCoords)) <= GEOFENCE_RADIUS_M;
+      // Near the pickup → arrived; otherwise the first ping flips accepted → arriving.
+      desiredStatus = nearPickup ? RIDE_STATUS.ARRIVED : RIDE_STATUS.ARRIVING;
+    } else if (ride.status === RIDE_STATUS.ONGOING) {
+      const dropoffCoords = ride.dropoff?.location?.coordinates;
+      const nearDropoff =
+        dropoffCoords?.length === 2 &&
+        haversineMeters(coords, toLatLng(dropoffCoords)) <= GEOFENCE_RADIUS_M;
+      if (nearDropoff) desiredStatus = RIDE_STATUS.COMPLETED;
+    }
+
+    // Only advance on a real change, and never let a racing/illegal transition
+    // crash the socket handler.
+    if (desiredStatus && desiredStatus !== ride.status) {
+      try {
+        await this.updateRideStatus({
+          rideId,
+          actorRole: "driver",
+          actorId: driverId,
+          nextStatus: desiredStatus,
+        });
+      } catch {
+        // Ignore — a concurrent manual override or terminal state raced us.
+      }
+    }
   },
 
   /**
@@ -431,30 +489,18 @@ const rideService = {
   /**
    * Fetch a ride as a plain object, populated for client display.
    * @param {string} rideId
-   * @param {{withOtp?:boolean}} [opts]
    * @returns {Promise<object>}
    */
-  async getRideById(rideId, opts = {}) {
-    let query = Ride.findById(rideId)
+  async getRideById(rideId) {
+    const ride = await Ride.findById(rideId)
       .populate("rider", "fullname rating")
       .populate("driver", "fullname vehicle rating location");
-    if (opts.withOtp) query = query.select("+otp");
-
-    const ride = await query;
     if (!ride) throw httpError("Ride not found", 404);
-
-    const base = ride.toObject();
-    if (!opts.withOtp) return base;
-
-    // When OTP is requested, return role-scoped variants:
-    // the rider sees the OTP, the driver never does.
-    const forDriver = { ...base };
-    delete forDriver.otp;
-    return { forRider: base, forDriver };
+    return ride.toObject();
   },
 
   /**
-   * Open ride requests near a driver whose tier matches the driver's vehicle —
+   * Open ride requests near a driver whose vehicle type matches the driver's —
    * powers the driver's trip request feed on load (before live pushes arrive).
    * @param {string} driverId
    * @param {number} [radiusKm]
@@ -464,10 +510,9 @@ const rideService = {
     const driver = await Driver.findById(driverId).select("vehicle location");
     if (!driver) throw httpError("Driver not found", 404);
 
-    const tier = VEHICLE_TIER_BY_TYPE[driver.vehicle?.type] || "economy";
     const radius = radiusKm || Number(process.env.DRIVER_SEARCH_RADIUS_KM) || 8;
 
-    const query = { status: RIDE_STATUS.REQUESTED, vehicleTier: tier };
+    const query = { status: RIDE_STATUS.REQUESTED, vehicleType: driver.vehicle?.type };
 
     // If we know the driver's position, restrict to nearby pickups.
     if (driver.location?.coordinates?.length === 2) {
@@ -513,8 +558,7 @@ const rideService = {
       status: { $in: [RIDE_STATUS.REQUESTED, RIDE_STATUS.ACCEPTED, RIDE_STATUS.ARRIVING, RIDE_STATUS.ARRIVED, RIDE_STATUS.ONGOING] },
     })
       .populate("rider", "fullname rating")
-      .populate("driver", "fullname vehicle rating location")
-      .select(role === "rider" ? "+otp" : "");
+      .populate("driver", "fullname vehicle rating location");
     return ride ? ride.toObject() : null;
   },
 
@@ -540,12 +584,21 @@ const rideService = {
     if (actorRole === "rider") {
       if (ride.rating.byRider) throw httpError("Already rated", 409);
       ride.rating.byRider = value;
-      await this._applyRating(Driver, ride.driver, value);
-    } else {
-      if (ride.rating.byDriver) throw httpError("Already rated", 409);
-      ride.rating.byDriver = value;
-      await this._applyRating(Rider, ride.rider, value);
+      const driver = await this._applyRating(Driver, ride.driver, value);
+      await ride.save();
+      // Push the driver's fresh aggregate rating to their live dashboard.
+      if (driver) {
+        emitToUser("driver", ride.driver, EVENTS.DRIVER_STATS_UPDATE, {
+          stats: driver.stats,
+          rating: driver.rating,
+        });
+      }
+      return ride.toObject();
     }
+
+    if (ride.rating.byDriver) throw httpError("Already rated", 409);
+    ride.rating.byDriver = value;
+    await this._applyRating(Rider, ride.rider, value);
     await ride.save();
     return ride.toObject();
   },
@@ -555,15 +608,17 @@ const rideService = {
    * @param {import('mongoose').Model} Model
    * @param {string} userId
    * @param {number} stars
+   * @returns {Promise<import('mongoose').Document|null>} the updated user
    * @private
    */
   async _applyRating(Model, userId, stars) {
-    const user = await Model.findById(userId).select("rating");
-    if (!user) return;
+    const user = await Model.findById(userId).select("rating stats");
+    if (!user) return null;
     const count = user.rating.count + 1;
     const average = (user.rating.average * user.rating.count + stars) / count;
     user.rating = { average: Math.round(average * 100) / 100, count };
     await user.save();
+    return user;
   },
 };
 

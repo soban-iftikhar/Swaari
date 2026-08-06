@@ -5,13 +5,13 @@ import Button from "../ui/Button";
  * OnlineToggle — the driver's go-online / go-offline switch.
  *
  * When online, the driver's location streams live and open requests appear in
- * the feed. When offline, the feed is gated. Shows the driver's service tier and
+ * the feed. When offline, the feed is gated. Shows the driver's vehicle type and
  * surfaces any geolocation error that would block going online.
  *
  * @param {object} props
  * @param {boolean} props.online
  * @param {boolean} [props.toggling] - a go online/offline call is in flight
- * @param {string} [props.tier] - service tier ("economy" | "comfort" | "executive")
+ * @param {string} [props.vehicleType] - the driver's vehicle ("bike" | "rickshaw" | "mini" | "sedan" | "suv" | "van")
  * @param {string} [props.geolocationError] - blocks going online when present
  * @param {() => void} props.onGoOnline
  * @param {() => void} props.onGoOffline
@@ -19,7 +19,7 @@ import Button from "../ui/Button";
 export default function OnlineToggle({
   online,
   toggling,
-  tier,
+  vehicleType,
   geolocationError,
   onGoOnline,
   onGoOffline,
@@ -39,10 +39,10 @@ export default function OnlineToggle({
             <p className="font-bold text-charcoal">{online ? "You're online" : "You're offline"}</p>
             <p className="text-xs text-slate-muted">
               {online ? "Receiving nearby ride requests" : "Go online to start earning"}
-              {tier && (
+              {vehicleType && (
                 <>
                   {" · "}
-                  <span className="capitalize">{tier}</span>
+                  <span className="capitalize">{vehicleType}</span>
                 </>
               )}
             </p>

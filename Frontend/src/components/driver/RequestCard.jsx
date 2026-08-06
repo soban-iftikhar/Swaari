@@ -60,7 +60,7 @@ export default function RequestCard({ request, myBid, onBid, onWithdraw, busy })
                 <Star className="h-3 w-3 fill-amber text-amber" />
                 {rating.toFixed(1)}
               </span>
-              <span className="capitalize">{request.vehicleTier}</span>
+              <span className="capitalize">{request.vehicleType}</span>
               <span className="capitalize">· {request.paymentMethod}</span>
             </div>
           </div>
