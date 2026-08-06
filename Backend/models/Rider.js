@@ -32,12 +32,17 @@ const riderSchema = new mongoose.Schema(
     /**
      * Last known position as a GeoJSON Point: coordinates are [longitude, latitude].
      * Used to default the pickup pin and for support/analytics.
+     *
+     * `type` has NO default on purpose: a default would stamp `{ type: "Point" }`
+     * onto every new account with no coordinates, which is invalid GeoJSON and
+     * makes the 2dsphere index reject the save ("Can't extract geo keys"). Left
+     * unset, the whole `location` object is minimized away and the (v2) 2dsphere
+     * index simply skips the document until a real position is written.
      */
     location: {
       type: {
         type: String,
         enum: ["Point"],
-        default: "Point",
       },
       coordinates: {
         type: [Number], // [lng, lat]

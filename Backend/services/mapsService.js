@@ -2,23 +2,37 @@
  * Maps & fare service.
  *
  * Computes route metrics (distance + duration) and fare estimates. When a
- * Google Maps server key is configured it uses the Distance Matrix API for
+ * LocationIQ key is configured it uses their Directions API (OSRM-backed) for
  * accurate road metrics; otherwise it falls back to a haversine estimate so the
  * platform stays fully functional without external credentials.
+ *
+ * LocationIQ was chosen over Google because it needs no billing account — a free
+ * email-signup key is enough. The key lives server-side only (LOCATIONIQ_KEY,
+ * never exposed to the browser); the frontend reaches geocoding through the
+ * /api/maps proxy.
  *
  * All public helpers accept plain `{ lat, lng }` points. Callers holding GeoJSON
  * `[lng, lat]` coordinates should convert at the boundary.
  */
 
 /**
- * Per-tier pricing model (PKR). Fare = base + perKm·km + perMin·min, floored at minFare.
- * Tune these to your market; they are the single source of truth for estimates.
+ * Per-vehicle pricing model (PKR). Fare = base + perKm·km + perMin·min, floored at minFare.
+ * Riders pick a concrete vehicle type directly; each has its own economics. This
+ * table is the single source of truth for both estimates and the selectable list
+ * (order here is the order shown in the picker — cheapest → priciest). Tune to
+ * your market.
  */
-export const TIER_PRICING = Object.freeze({
-  economy: { base: 100, perKm: 45, perMin: 3, minFare: 150, label: "Economy" },
-  comfort: { base: 160, perKm: 65, perMin: 4, minFare: 230, label: "Comfort" },
-  executive: { base: 260, perKm: 95, perMin: 6, minFare: 380, label: "Executive" },
+export const VEHICLE_PRICING = Object.freeze({
+  bike: { base: 60, perKm: 22, perMin: 1.5, minFare: 90, label: "Bike" },
+  rickshaw: { base: 90, perKm: 32, perMin: 2, minFare: 120, label: "Rickshaw" },
+  mini: { base: 110, perKm: 42, perMin: 2.5, minFare: 150, label: "Mini" },
+  sedan: { base: 160, perKm: 65, perMin: 4, minFare: 230, label: "Car" },
+  suv: { base: 220, perKm: 85, perMin: 5, minFare: 320, label: "SUV" },
+  van: { base: 260, perKm: 95, perMin: 6, minFare: 380, label: "Van" },
 });
+
+/** The selectable vehicle types, in display order — the source-of-truth list. */
+export const VEHICLE_TYPES = Object.freeze(Object.keys(VEHICLE_PRICING));
 
 const EARTH_RADIUS_M = 6371000;
 // Assumed average urban speed (km/h) for the fallback duration estimate.
@@ -46,31 +60,32 @@ export function haversineMeters(a, b) {
 
 /**
  * Resolve road distance and duration between two points.
- * Uses Google Distance Matrix when GOOGLE_MAPS_API_KEY is set, else haversine.
+ * Uses LocationIQ Directions when LOCATIONIQ_KEY is set, else haversine.
  * @param {{lat:number, lng:number}} pickup
  * @param {{lat:number, lng:number}} dropoff
  * @returns {Promise<{distanceMeters:number, durationSeconds:number, source:string}>}
  */
 export async function getRouteMetrics(pickup, dropoff) {
-  const key = process.env.GOOGLE_MAPS_API_KEY;
+  const key = process.env.LOCATIONIQ_KEY;
 
   if (key) {
     try {
-      const url = new URL("https://maps.googleapis.com/maps/api/distancematrix/json");
-      url.searchParams.set("origins", `${pickup.lat},${pickup.lng}`);
-      url.searchParams.set("destinations", `${dropoff.lat},${dropoff.lng}`);
-      url.searchParams.set("mode", "driving");
+      // LocationIQ Directions (OSRM-compatible): coordinates are lng,lat pairs
+      // separated by ';'. overview=false skips geometry — we only need metrics.
+      const coords = `${pickup.lng},${pickup.lat};${dropoff.lng},${dropoff.lat}`;
+      const url = new URL(`https://us1.locationiq.com/v1/directions/driving/${coords}`);
       url.searchParams.set("key", key);
+      url.searchParams.set("overview", "false");
 
       const res = await fetch(url);
       const data = await res.json();
-      const element = data?.rows?.[0]?.elements?.[0];
+      const route = data?.routes?.[0];
 
-      if (element?.status === "OK") {
+      if (route && Number.isFinite(route.distance) && Number.isFinite(route.duration)) {
         return {
-          distanceMeters: element.distance.value,
-          durationSeconds: element.duration.value,
-          source: "google",
+          distanceMeters: Math.round(route.distance),
+          durationSeconds: Math.round(route.duration),
+          source: "locationiq",
         };
       }
     } catch {
@@ -87,14 +102,14 @@ export async function getRouteMetrics(pickup, dropoff) {
 }
 
 /**
- * Estimate the fare for a tier given route metrics. Rounds to the nearest 10 PKR.
- * @param {string} tier - economy | comfort | executive
+ * Estimate the fare for a vehicle type given route metrics. Rounds to nearest 10 PKR.
+ * @param {string} vehicleType - bike | rickshaw | mini | sedan | suv | van
  * @param {number} distanceMeters
  * @param {number} durationSeconds
  * @returns {number} fare in PKR
  */
-export function estimateFare(tier, distanceMeters, durationSeconds) {
-  const pricing = TIER_PRICING[tier] || TIER_PRICING.economy;
+export function estimateFare(vehicleType, distanceMeters, durationSeconds) {
+  const pricing = VEHICLE_PRICING[vehicleType] || VEHICLE_PRICING.mini;
   const km = distanceMeters / 1000;
   const min = durationSeconds / 60;
 
@@ -104,28 +119,29 @@ export function estimateFare(tier, distanceMeters, durationSeconds) {
 }
 
 /**
- * Produce a fare estimate for every tier at once — used by the fare calculator
- * and the vehicle selection screen.
+ * Produce a fare estimate for every vehicle type at once — used by the fare
+ * calculator and the vehicle selection screen.
  * @param {{lat:number, lng:number}} pickup
  * @param {{lat:number, lng:number}} dropoff
- * @returns {Promise<{distanceMeters:number, durationSeconds:number, source:string, tiers:Array}>}
+ * @returns {Promise<{distanceMeters:number, durationSeconds:number, source:string, options:Array}>}
  */
-export async function estimateAllTiers(pickup, dropoff) {
+export async function estimateFares(pickup, dropoff) {
   const metrics = await getRouteMetrics(pickup, dropoff);
 
-  const tiers = Object.entries(TIER_PRICING).map(([tier, pricing]) => ({
-    tier,
+  const options = Object.entries(VEHICLE_PRICING).map(([type, pricing]) => ({
+    type,
     label: pricing.label,
-    fare: estimateFare(tier, metrics.distanceMeters, metrics.durationSeconds),
+    fare: estimateFare(type, metrics.distanceMeters, metrics.durationSeconds),
   }));
 
-  return { ...metrics, tiers };
+  return { ...metrics, options };
 }
 
 export default {
-  TIER_PRICING,
+  VEHICLE_PRICING,
+  VEHICLE_TYPES,
   haversineMeters,
   getRouteMetrics,
   estimateFare,
-  estimateAllTiers,
+  estimateFares,
 };

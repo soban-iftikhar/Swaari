@@ -269,3 +269,91 @@ h4 {
 .sw-animate-scale-in {
   animation: sw-scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* List item rise-in — used to stagger offers / requests as they arrive */
+@keyframes sw-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.sw-animate-rise {
+  animation: sw-rise 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+/* Stagger children by nth-child so a freshly rendered list cascades in. */
+.sw-stagger > * {
+  animation: sw-rise 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.sw-stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.sw-stagger > *:nth-child(2) { animation-delay: 0.07s; }
+.sw-stagger > *:nth-child(3) { animation-delay: 0.12s; }
+.sw-stagger > *:nth-child(4) { animation-delay: 0.17s; }
+.sw-stagger > *:nth-child(5) { animation-delay: 0.22s; }
+.sw-stagger > *:nth-child(n + 6) { animation-delay: 0.26s; }
+
+/* Route connector — the vertical line between pickup/dropoff nodes. A solid
+ * amber→charcoal segment (no gradient blur; a hard two-stop is fine and flat). */
+.sw-route-connector {
+  width: 2px;
+  background-image: linear-gradient(
+    to bottom,
+    var(--color-amber) 0%,
+    var(--color-amber) 45%,
+    var(--color-line-strong) 45%,
+    var(--color-line-strong) 55%,
+    var(--color-charcoal) 55%,
+    var(--color-charcoal) 100%
+  );
+}
+
+/* Amber "live" ping used by searching / online states. */
+@keyframes sw-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  75%,
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+.sw-animate-ping {
+  animation: sw-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Floating stage panel over the map canvas (desktop). Solid paper, strong
+ * border, elevated — reads as a control surface hovering on the map. */
+@layer components {
+  .sw-floating-panel {
+    background-color: var(--color-paper);
+    border: 1px solid var(--color-line-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-pop);
+  }
+
+  /* Brand mark tile — charcoal square housing the route glyph. */
+  .sw-brandmark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background-color: var(--color-charcoal);
+  }
+}
+
+/* Respect reduced-motion preferences across all custom animations. */
+@media (prefers-reduced-motion: reduce) {
+  .sw-animate-slide-up,
+  .sw-animate-fade-in,
+  .sw-animate-scale-in,
+  .sw-animate-rise,
+  .sw-stagger > *,
+  .sw-animate-ping {
+    animation: none;
+  }
+}

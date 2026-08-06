@@ -1,4 +1,5 @@
-import { Car, CarFront, Crown, Users } from "lucide-react";
+import { Users } from "lucide-react";
+import { TIER_ICON } from "../../lib/icons";
 import { formatCurrency } from "../../lib/format";
 
 /**
@@ -13,9 +14,9 @@ import { formatCurrency } from "../../lib/format";
  */
 
 const TIER_META = {
-  economy: { icon: Car, desc: "Affordable everyday rides", seats: 4 },
-  comfort: { icon: CarFront, desc: "Newer cars, more room", seats: 4 },
-  executive: { icon: Crown, desc: "Premium vehicles", seats: 4 },
+  economy: { icon: TIER_ICON.economy, desc: "Affordable everyday rides", seats: 4 },
+  comfort: { icon: TIER_ICON.comfort, desc: "Newer cars, more room", seats: 4 },
+  executive: { icon: TIER_ICON.executive, desc: "Premium vehicles", seats: 4 },
 };
 
 const ORDER = ["economy", "comfort", "executive"];

@@ -1,5 +1,7 @@
 import { Phone, MessageSquare, ShieldAlert, X, Star, Navigation, KeyRound } from "lucide-react";
 import Button from "../ui/Button";
+import Avatar from "../ui/Avatar";
+import RouteRow from "../ui/RouteRow";
 import { formatCurrency, fullNameOf } from "../../lib/format";
 import toast from "react-hot-toast";
 
@@ -60,9 +62,7 @@ export default function ActiveRidePanel({ ride, unreadCount = 0, onOpenChat, onC
         <div className="rounded-xl border border-line bg-paper p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-charcoal text-lg font-bold text-paper">
-                {(driver.fullname?.firstname || "D").charAt(0).toUpperCase()}
-              </span>
+              <Avatar name={fullNameOf(driver.fullname)} fallback="D" size="lg" ring="emerald" />
               <div>
                 <p className="font-bold text-charcoal">{fullNameOf(driver.fullname) || "Your driver"}</p>
                 <span className="inline-flex items-center gap-1 text-xs text-slate-muted">
@@ -108,10 +108,7 @@ export default function ActiveRidePanel({ ride, unreadCount = 0, onOpenChat, onC
         </div>
 
         {/* Trip route */}
-        <div className="space-y-2">
-          <RouteRow color="bg-amber" label={ride.pickup?.address} caption="Pickup" />
-          <RouteRow color="bg-charcoal" label={ride.dropoff?.address} caption="Dropoff" />
-        </div>
+        <RouteRow pickup={ride.pickup} dropoff={ride.dropoff} />
       </div>
 
       {/* Safety + cancel */}
@@ -135,19 +132,6 @@ export default function ActiveRidePanel({ ride, unreadCount = 0, onOpenChat, onC
             Cancel ride
           </Button>
         )}
-      </div>
-    </div>
-  );
-}
-
-/** A pickup/dropoff row with a colored node. */
-function RouteRow({ color, label, caption }) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${color}`} />
-      <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-faint">{caption}</p>
-        <p className="truncate text-sm text-charcoal">{label || "—"}</p>
       </div>
     </div>
   );

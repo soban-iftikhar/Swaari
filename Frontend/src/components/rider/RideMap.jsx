@@ -1,137 +1,181 @@
-import { useEffect, useRef } from "react";
-import { MapPin, Navigation } from "lucide-react";
-import useGoogleMaps from "../../hooks/useGoogleMaps";
+import { useEffect, useRef, useState } from "react";
+import * as maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { MapPin, Navigation } from "../../lib/icons";
+import useMapTiler from "../../hooks/useMapTiler";
 
 /**
- * RideMap — the Google map surface for the booking + tracking flow.
+ * RideMap — the map surface for the booking + tracking flow, on MapLibre GL
+ * rendering MapTiler vector tiles.
  *
- * Renders pickup, dropoff, and (during a ride) the live driver marker, plus a
- * route polyline between pickup and dropoff. When the Google Maps API key is
- * absent or the script fails to load, it degrades to a clean solid placeholder
- * so the rest of the flow stays usable without external credentials.
+ * Renders pickup (A), dropoff (B), and (during a ride) the live driver marker,
+ * plus a route line between pickup and dropoff — using real road geometry when a
+ * `route` is supplied, else a straight segment. The basemap is MapTiler vector
+ * tiles when a key is set, otherwise a keyless OpenStreetMap raster basemap, so
+ * the map renders live geography either way (see useMapTiler). The solid,
+ * on-brand placeholder is a last resort, shown only if MapLibre can't initialise
+ * at all (e.g. WebGL unavailable).
+ *
+ * All points are plain `{ lat, lng }`. Callers holding GeoJSON `[lng, lat]`
+ * should convert at the boundary (see `coordsOf` in lib/format).
  *
  * @param {object} props
  * @param {{lat:number,lng:number}} [props.pickup]
  * @param {{lat:number,lng:number}} [props.dropoff]
  * @param {{lat:number,lng:number}} [props.driver] - live driver position
+ * @param {Array<[number,number]>} [props.route] - optional [lng,lat] path
  * @param {string} [props.className]
  */
-export default function RideMap({ pickup, dropoff, driver, className = "" }) {
-  const ready = useGoogleMaps();
-  const hasKey = !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const LAHORE = { lat: 31.5204, lng: 74.3587 };
+
+export default function RideMap({ pickup, dropoff, driver, route, className = "" }) {
+  const { styleSpec } = useMapTiler();
+  const containerRef = useRef(null);
   const mapRef = useRef(null);
-  const mapObj = useRef(null);
-  const markers = useRef({});
-  const routeLine = useRef(null);
+  const loadedRef = useRef(false);
+  const markersRef = useRef({});
+  const [failed, setFailed] = useState(false);
 
-  // Initialise the map once the API is ready.
+  // Initialise the map once.
   useEffect(() => {
-    if (!ready || !mapRef.current || mapObj.current) return;
-    const g = window.google;
-    mapObj.current = new g.maps.Map(mapRef.current, {
-      center: pickup || { lat: 31.5204, lng: 74.3587 }, // Lahore default
-      zoom: 13,
-      disableDefaultUI: true,
-      zoomControl: true,
-      clickableIcons: false,
-      styles: MAP_STYLE,
+    if (!containerRef.current || mapRef.current) return;
+    let map;
+    try {
+      map = new maplibregl.Map({
+        container: containerRef.current,
+        style: styleSpec,
+        center: [pickup?.lng ?? LAHORE.lng, pickup?.lat ?? LAHORE.lat],
+        zoom: 12,
+        attributionControl: { compact: true },
+      });
+    } catch {
+      // WebGL unavailable / context creation failed — fall back to the placeholder.
+      setFailed(true);
+      return;
+    }
+    map.on("error", () => {}); // swallow tile 4xx noise; the basemap still renders
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.on("load", () => {
+      loadedRef.current = true;
+      map.addSource("route", {
+        type: "geojson",
+        data: { type: "Feature", geometry: { type: "LineString", coordinates: [] } },
+      });
+      map.addLayer({
+        id: "route-line",
+        type: "line",
+        source: "route",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#1a1a1a", "line-width": 4, "line-opacity": 0.75 },
+      });
+      syncMap(map, markersRef.current, { pickup, dropoff, driver, route });
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
-
-  // Sync markers + route whenever points change.
-  useEffect(() => {
-    if (!ready || !mapObj.current) return;
-    const g = window.google;
-    const map = mapObj.current;
-
-    const upsertMarker = (key, pos, opts) => {
-      if (!pos) {
-        if (markers.current[key]) {
-          markers.current[key].setMap(null);
-          delete markers.current[key];
-        }
-        return;
-      }
-      if (markers.current[key]) {
-        markers.current[key].setPosition(pos);
-      } else {
-        markers.current[key] = new g.maps.Marker({ position: pos, map, ...opts });
-      }
+    mapRef.current = map;
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      loadedRef.current = false;
+      markersRef.current = {};
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [styleSpec]);
 
-    upsertMarker("pickup", pickup, {
-      label: { text: "A", color: "#1a1a1a", fontWeight: "700" },
-      icon: pinIcon("#ffc107"),
-    });
-    upsertMarker("dropoff", dropoff, {
-      label: { text: "B", color: "#ffffff", fontWeight: "700" },
-      icon: pinIcon("#1a1a1a"),
-    });
-    upsertMarker("driver", driver, { icon: carIcon() });
+  // Sync markers + route whenever the points change.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+    syncMap(map, markersRef.current, { pickup, dropoff, driver, route });
+  }, [pickup, dropoff, driver, route]);
 
-    // Route line between pickup and dropoff.
-    if (pickup && dropoff) {
-      const path = [pickup, dropoff];
-      if (routeLine.current) {
-        routeLine.current.setPath(path);
-      } else {
-        routeLine.current = new g.maps.Polyline({
-          path,
-          map,
-          strokeColor: "#1a1a1a",
-          strokeOpacity: 0.7,
-          strokeWeight: 4,
-        });
-      }
-    } else if (routeLine.current) {
-      routeLine.current.setMap(null);
-      routeLine.current = null;
-    }
-
-    // Fit to whatever points we have.
-    const pts = [pickup, dropoff, driver].filter(Boolean);
-    if (pts.length === 1) {
-      map.setCenter(pts[0]);
-      map.setZoom(15);
-    } else if (pts.length > 1) {
-      const bounds = new g.maps.LatLngBounds();
-      pts.forEach((p) => bounds.extend(p));
-      map.fitBounds(bounds, 80);
-    }
-  }, [ready, pickup, dropoff, driver]);
-
-  // Fallback surface (no key or failed load).
-  if (!hasKey || (!ready && !hasKey)) {
+  if (failed) {
     return <MapFallback pickup={pickup} dropoff={dropoff} driver={driver} className={className} />;
   }
 
   return (
     <div className={`relative h-full w-full overflow-hidden ${className}`}>
-      <div ref={mapRef} className="h-full w-full" />
-      {!ready && (
-        <div className="absolute inset-0 flex items-center justify-center bg-cream">
-          <div className="flex items-center gap-2 text-slate-muted">
-            <Navigation className="h-5 w-5 animate-pulse" />
-            Loading map…
-          </div>
-        </div>
-      )}
+      <div ref={containerRef} className="h-full w-full" />
     </div>
   );
 }
 
-/** Solid placeholder shown when Google Maps isn't available. */
+/**
+ * Reconcile markers + route line + viewport against the current points.
+ * Pure DOM/MapLibre work (no React) so it can run from both the load handler
+ * and the points-changed effect.
+ */
+function syncMap(map, markers, { pickup, dropoff, driver, route }) {
+  upsertMarker(map, markers, "pickup", pickup, () => pinEl("A", "#ffc107", "#1a1a1a"));
+  upsertMarker(map, markers, "dropoff", dropoff, () => pinEl("B", "#1a1a1a", "#ffffff"));
+  upsertMarker(map, markers, "driver", driver, driverEl);
+
+  // Route line: real geometry when provided, else a straight pickup→dropoff line.
+  const src = map.getSource("route");
+  if (src) {
+    let line = [];
+    if (Array.isArray(route) && route.length > 1) line = route;
+    else if (pickup && dropoff) line = [[pickup.lng, pickup.lat], [dropoff.lng, dropoff.lat]];
+    src.setData({ type: "Feature", geometry: { type: "LineString", coordinates: line } });
+  }
+
+  // Fit the viewport to whatever points we have.
+  const pts = [pickup, dropoff, driver].filter(Boolean);
+  if (pts.length === 1) {
+    map.easeTo({ center: [pts[0].lng, pts[0].lat], zoom: 14, duration: 500 });
+  } else if (pts.length > 1) {
+    const bounds = new maplibregl.LngLatBounds();
+    pts.forEach((p) => bounds.extend([p.lng, p.lat]));
+    map.fitBounds(bounds, { padding: 64, maxZoom: 15, duration: 500 });
+  }
+}
+
+/** Create or move a marker; remove it when the point is cleared. */
+function upsertMarker(map, markers, key, point, makeEl) {
+  if (!point) {
+    if (markers[key]) {
+      markers[key].remove();
+      delete markers[key];
+    }
+    return;
+  }
+  if (markers[key]) {
+    markers[key].setLngLat([point.lng, point.lat]);
+  } else {
+    markers[key] = new maplibregl.Marker({ element: makeEl(), anchor: key === "driver" ? "center" : "bottom" })
+      .setLngLat([point.lng, point.lat])
+      .addTo(map);
+  }
+}
+
+/** A solid teardrop pin with a single-letter label (A / B). */
+function pinEl(label, bg, fg) {
+  const el = document.createElement("div");
+  el.style.cssText =
+    "width:30px;height:38px;position:relative;transform:translateY(2px);filter:drop-shadow(0 2px 3px rgba(26,26,26,.35))";
+  el.innerHTML = `<svg width="30" height="38" viewBox="0 0 30 38" xmlns="http://www.w3.org/2000/svg">
+    <path d="M15 0C6.7 0 0 6.7 0 15c0 10.6 15 23 15 23s15-12.4 15-23C30 6.7 23.3 0 15 0z" fill="${bg}"/>
+    <text x="15" y="20" text-anchor="middle" font-family="Inter,sans-serif" font-size="14" font-weight="800" fill="${fg}">${label}</text>
+  </svg>`;
+  return el;
+}
+
+/** Emerald pulsing dot for the live driver position. */
+function driverEl() {
+  const el = document.createElement("div");
+  el.style.cssText =
+    "width:22px;height:22px;border-radius:9999px;background:#10b981;border:3px solid #fff;box-shadow:0 0 0 4px rgba(16,185,129,.28),0 2px 4px rgba(26,26,26,.3)";
+  return el;
+}
+
+/** Solid, on-brand placeholder shown when no MapTiler key is configured. */
 function MapFallback({ pickup, dropoff, driver, className = "" }) {
   return (
     <div className={`relative h-full w-full overflow-hidden bg-charcoal ${className}`}>
-      {/* Subtle grid motif (solid strokes, no gradient) */}
       <div
-        className="absolute inset-0 opacity-[0.15]"
+        className="absolute inset-0 opacity-[0.12]"
         style={{
           backgroundImage:
             "linear-gradient(#f7f6f2 1px, transparent 1px), linear-gradient(90deg, #f7f6f2 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
+          backgroundSize: "38px 38px",
         }}
       />
       <div className="relative flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
@@ -151,37 +195,3 @@ function MapFallback({ pickup, dropoff, driver, className = "" }) {
     </div>
   );
 }
-
-/** A rounded pin SVG data-URI marker in the given solid color. */
-function pinIcon(color) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="46" viewBox="0 0 34 46">
-    <path d="M17 0C7.6 0 0 7.6 0 17c0 12 17 29 17 29s17-17 17-29C34 7.6 26.4 0 17 0z" fill="${color}"/>
-    <circle cx="17" cy="17" r="11" fill="#ffffff"/>
-  </svg>`;
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new window.google.maps.Size(34, 46),
-    anchor: new window.google.maps.Point(17, 46),
-    labelOrigin: new window.google.maps.Point(17, 17),
-  };
-}
-
-/** Emerald car dot for the live driver marker. */
-function carIcon() {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">
-    <circle cx="15" cy="15" r="13" fill="#10b981" stroke="#ffffff" stroke-width="3"/>
-  </svg>`;
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new window.google.maps.Size(30, 30),
-    anchor: new window.google.maps.Point(15, 15),
-  };
-}
-
-// Muted, low-chroma map styling to match the solid design language.
-const MAP_STYLE = [
-  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-  { featureType: "poi", stylers: [{ visibility: "off" }] },
-  { featureType: "transit", stylers: [{ visibility: "off" }] },
-  { featureType: "road", elementType: "labels", stylers: [{ visibility: "simplified" }] },
-];

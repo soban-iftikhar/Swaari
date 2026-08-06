@@ -1,20 +1,6 @@
 import mongoose from "mongoose";
 import authPlugin from "../utils/authPlugin.js";
 
-/**
- * Maps a concrete vehicle type to a service tier used for pricing and matching.
- * Riders request a tier (economy / comfort / executive); drivers are matched
- * when their vehicle maps to the requested tier.
- */
-export const VEHICLE_TIER_BY_TYPE = {
-  bike: "economy",
-  rickshaw: "economy",
-  mini: "economy",
-  sedan: "comfort",
-  suv: "executive",
-  van: "executive",
-};
-
 const driverSchema = new mongoose.Schema(
   {
     fullname: {
@@ -73,12 +59,17 @@ const driverSchema = new mongoose.Schema(
      * Current position as a GeoJSON Point: coordinates are [longitude, latitude].
      * A 2dsphere index (declared below) enables `$near` / `$geoWithin` radius
      * queries when matching riders to nearby drivers.
+     *
+     * `type` has NO default on purpose: a default would stamp `{ type: "Point" }`
+     * onto every new account with no coordinates, which is invalid GeoJSON and
+     * makes the 2dsphere index reject the save ("Can't extract geo keys"). Left
+     * unset, the whole `location` object is minimized away and the (v2) 2dsphere
+     * index simply skips the document until a real position is written.
      */
     location: {
       type: {
         type: String,
         enum: ["Point"],
-        default: "Point",
       },
       coordinates: {
         type: [Number], // [lng, lat]
@@ -127,11 +118,6 @@ const driverSchema = new mongoose.Schema(
 
 // Geospatial index enabling radius-based driver search.
 driverSchema.index({ location: "2dsphere" });
-
-/** Convenience virtual exposing the driver's current service tier. */
-driverSchema.virtual("tier").get(function () {
-  return VEHICLE_TIER_BY_TYPE[this.vehicle?.type] || "economy";
-});
 
 // Apply auth plugin (JWT generation + password hashing helpers).
 driverSchema.plugin(authPlugin);

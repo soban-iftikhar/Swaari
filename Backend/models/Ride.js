@@ -6,7 +6,7 @@ import mongoose from "mongoose";
  *  requested  → rider has broadcast a request; drivers are being notified / bidding
  *  accepted   → rider accepted a driver (or driver accepted standard fare); driver assigned
  *  arriving   → driver is en route to the pickup point
- *  arrived    → driver has reached the pickup point (OTP exchange)
+ *  arrived    → driver has reached the pickup point
  *  ongoing    → trip in progress (rider on board)
  *  completed  → trip finished, fare settled
  *  cancelled  → cancelled by rider or driver before completion
@@ -56,9 +56,9 @@ const rideSchema = new mongoose.Schema(
     pickup: { type: placeSchema, required: true },
     dropoff: { type: placeSchema, required: true },
 
-    vehicleTier: {
+    vehicleType: {
       type: String,
-      enum: ["economy", "comfort", "executive"],
+      enum: ["bike", "rickshaw", "mini", "sedan", "suv", "van"],
       required: true,
     },
 
@@ -89,12 +89,6 @@ const rideSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Bid",
       default: null,
-    },
-
-    // 4-digit code the rider shares with the driver at pickup to start the trip.
-    otp: {
-      type: String,
-      select: false,
     },
 
     // Live driver position during an active ride ([lng, lat]) for tracking.
@@ -132,7 +126,6 @@ const rideSchema = new mongoose.Schema(
     toJSON: {
       transform(doc, ret) {
         delete ret.__v;
-        delete ret.otp;
         return ret;
       },
     },

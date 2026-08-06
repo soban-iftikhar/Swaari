@@ -8,9 +8,10 @@ import SearchingPanel from "../../components/rider/SearchingPanel";
 import ActiveRidePanel from "../../components/rider/ActiveRidePanel";
 import ChatDrawer from "../../components/rider/ChatDrawer";
 import RatingModal from "../../components/rider/RatingModal";
+import DashboardCanvas from "../../components/ui/DashboardCanvas";
 import useRideFlow from "../../hooks/useRideFlow";
 import useRideChat from "../../hooks/useRideChat";
-import { fullNameOf } from "../../lib/format";
+import { fullNameOf, coordsOf } from "../../lib/format";
 
 /**
  * RiderDashboard — the composing shell for the entire rider booking and tracking
@@ -26,9 +27,10 @@ export default function RiderDashboard() {
 
   const chat = useRideChat(flow.ride?._id, "rider", chatOpen);
 
-  // Map coordinates
-  const pickup = flow.pickup ? { lat: flow.pickup.lat, lng: flow.pickup.lng } : null;
-  const dropoff = flow.dropoff ? { lat: flow.dropoff.lat, lng: flow.dropoff.lng } : null;
+  // Map coordinates — prefer the persisted ride's endpoints (so a mid-trip
+  // refresh still plots them), falling back to the live booking inputs.
+  const pickup = coordsOf(flow.ride?.pickup) || coordsOf(flow.pickup);
+  const dropoff = coordsOf(flow.ride?.dropoff) || coordsOf(flow.dropoff);
   const driver = flow.driverCoords;
 
   // Chat drawer title
@@ -45,62 +47,56 @@ export default function RiderDashboard() {
           <Loader2 className="h-8 w-8 animate-spin text-slate-muted" />
         </div>
       ) : (
-        <div className="relative flex flex-1">
-          {/* Map (left/top) */}
-          <div className="relative h-[40vh] w-full sm:h-auto sm:w-3/5 lg:w-2/3">
-            <RideMap pickup={pickup} dropoff={dropoff} driver={driver} className="h-full w-full" />
-          </div>
+        <DashboardCanvas
+          map={<RideMap pickup={pickup} dropoff={dropoff} driver={driver} className="h-full w-full" />}
+        >
+          {flow.stage === "booking" && (
+            <BookingPanel
+              pickup={flow.pickup}
+              setPickup={flow.setPickup}
+              dropoff={flow.dropoff}
+              setDropoff={flow.setDropoff}
+              tier={flow.tier}
+              setTier={flow.setTier}
+              paymentMethod={flow.paymentMethod}
+              setPaymentMethod={flow.setPaymentMethod}
+              estimate={flow.estimate}
+              estimating={flow.estimating}
+              loading={flow.loading}
+              onRequest={flow.requestRide}
+            />
+          )}
 
-          {/* Stage panel (right/bottom) */}
-          <div className="w-full overflow-y-auto border-t border-line bg-paper p-5 sm:w-2/5 sm:border-l sm:border-t-0 lg:w-1/3">
-            {flow.stage === "booking" && (
-              <BookingPanel
-                pickup={flow.pickup}
-                setPickup={flow.setPickup}
-                dropoff={flow.dropoff}
-                setDropoff={flow.setDropoff}
-                tier={flow.tier}
-                setTier={flow.setTier}
-                paymentMethod={flow.paymentMethod}
-                setPaymentMethod={flow.setPaymentMethod}
-                estimate={flow.estimate}
-                estimating={flow.estimating}
-                loading={flow.loading}
-                onRequest={flow.requestRide}
-              />
-            )}
+          {flow.stage === "searching" && (
+            <SearchingPanel
+              ride={flow.ride}
+              bids={flow.bids}
+              onAccept={flow.acceptBid}
+              onReject={flow.rejectBid}
+              onCancel={flow.cancelRide}
+              loading={flow.loading}
+            />
+          )}
 
-            {flow.stage === "searching" && (
-              <SearchingPanel
-                ride={flow.ride}
-                bids={flow.bids}
-                onAccept={flow.acceptBid}
-                onReject={flow.rejectBid}
-                onCancel={flow.cancelRide}
-                loading={flow.loading}
-              />
-            )}
+          {flow.stage === "active" && (
+            <ActiveRidePanel
+              ride={flow.ride}
+              unreadCount={chat.unread}
+              onOpenChat={() => setChatOpen(true)}
+              onCancel={flow.cancelRide}
+              loading={flow.loading}
+            />
+          )}
 
-            {flow.stage === "active" && (
-              <ActiveRidePanel
-                ride={flow.ride}
-                unreadCount={chat.unread}
-                onOpenChat={() => setChatOpen(true)}
-                onCancel={flow.cancelRide}
-                loading={flow.loading}
-              />
-            )}
-
-            {flow.stage === "completed" && (
-              <div className="flex flex-col items-center justify-center py-10 text-center">
-                <p className="text-xl font-black text-charcoal">Trip completed!</p>
-                <p className="mt-2 text-sm text-slate-muted">
-                  Rate your driver below or skip to book another ride.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+          {flow.stage === "completed" && (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <p className="text-xl font-black text-charcoal">Trip completed!</p>
+              <p className="mt-2 text-sm text-slate-muted">
+                Rate your driver below or skip to book another ride.
+              </p>
+            </div>
+          )}
+        </DashboardCanvas>
       )}
 
       <Navbar

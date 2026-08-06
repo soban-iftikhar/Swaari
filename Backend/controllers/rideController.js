@@ -31,12 +31,21 @@ const rejectOnValidationErrors = (req, res) => {
  */
 const estimate = asyncHandler(async (req, res) => {
   const { pickup, dropoff } = req.body;
-  if (!pickup?.lat || !pickup?.lng || !dropoff?.lat || !dropoff?.lng) {
+  const pickupLat = Number(pickup?.lat);
+  const pickupLng = Number(pickup?.lng);
+  const dropoffLat = Number(dropoff?.lat);
+  const dropoffLng = Number(dropoff?.lng);
+  if (
+    !Number.isFinite(pickupLat) ||
+    !Number.isFinite(pickupLng) ||
+    !Number.isFinite(dropoffLat) ||
+    !Number.isFinite(dropoffLng)
+  ) {
     return res.status(400).json({ message: "pickup and dropoff coordinates are required" });
   }
   const result = await estimateAllTiers(
-    { lat: Number(pickup.lat), lng: Number(pickup.lng) },
-    { lat: Number(dropoff.lat), lng: Number(dropoff.lng) },
+    { lat: pickupLat, lng: pickupLng },
+    { lat: dropoffLat, lng: dropoffLng },
   );
   res.status(200).json(result);
 });

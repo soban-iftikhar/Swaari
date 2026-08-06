@@ -10,7 +10,7 @@ import { useAuth } from "../context/AuthContext";
  * navigation lives elsewhere.
  *
  * @param {object} props
- * @param {Array<{label:string,to:string}>} [props.items] - overrides default tabs
+ * @param {Array<{label:string,to:string,icon?:React.ComponentType}>} [props.items] - overrides default tabs
  */
 const ICON_BY_LABEL = {
   home: House,
@@ -32,12 +32,16 @@ export default function Navbar({ items }) {
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1 sm:hidden">
       <ul className="mx-auto grid max-w-md grid-cols-3">
         {navItems.map((item) => {
-          const Icon = ICON_BY_LABEL[item.label.toLowerCase()] || House;
+          const Icon = item.icon || ICON_BY_LABEL[item.label.toLowerCase()] || House;
           return (
             <li key={item.label}>
               <NavLink to={item.to} aria-label={item.label} end>
                 {({ isActive }) => (
-                  <span className="flex flex-col items-center justify-center gap-1 py-2">
+                  <span className="relative flex flex-col items-center justify-center gap-1 py-2">
+                    {/* Crisp active marker — a solid amber cap, not a glow. */}
+                    {isActive && (
+                      <span className="absolute -top-1 h-1 w-8 rounded-full bg-amber" aria-hidden="true" />
+                    )}
                     <Icon
                       className={isActive ? "h-5 w-5 text-charcoal" : "h-5 w-5 text-slate-faint"}
                       strokeWidth={isActive ? 2.4 : 2}

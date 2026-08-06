@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Radio, X } from "lucide-react";
 import OfferCard from "./OfferCard";
 import Button from "../ui/Button";
+import EmptyState from "../ui/EmptyState";
 import { formatCurrency, formatDistance, formatDuration } from "../../lib/format";
 
 /**
@@ -43,7 +44,7 @@ export default function SearchingPanel({ ride, bids, onAccept, onReject, onCance
       <div className="border-b border-line pb-4">
         <div className="flex items-center gap-2">
           <span className="relative flex h-3 w-3">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber opacity-75" />
+            <span className="sw-animate-ping absolute inline-flex h-full w-full rounded-full bg-amber" />
             <span className="relative inline-flex h-3 w-3 rounded-full bg-amber" />
           </span>
           <h1 className="text-xl font-black text-charcoal">Finding you a driver…</h1>
@@ -69,17 +70,16 @@ export default function SearchingPanel({ ride, bids, onAccept, onReject, onCance
       {/* Offers list */}
       <div className="flex-1 overflow-y-auto py-4">
         {bids.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-            <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-amber-050 text-amber-600">
-              <Radio className="h-7 w-7 animate-pulse" />
-            </span>
-            <p className="max-w-xs text-sm text-slate-muted">
-              Your request is live. Drivers nearby are reviewing it — offers will appear here.
-            </p>
+          <EmptyState
+            icon={Radio}
+            tone="amber"
+            pulse
+            body="Your request is live. Drivers nearby are reviewing it — offers will appear here."
+          >
             <Loader2 className="h-5 w-5 animate-spin text-slate-faint" />
-          </div>
+          </EmptyState>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sw-stagger">
             {bids.map((bid) => (
               <OfferCard
                 key={bid._id}

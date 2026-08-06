@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Star, Check } from "lucide-react";
 import StarRating from "../ui/StarRating";
 import Button from "../ui/Button";
+import Avatar from "../ui/Avatar";
 import { formatCurrency, fullNameOf } from "../../lib/format";
 
 /**
@@ -18,16 +19,26 @@ import { formatCurrency, fullNameOf } from "../../lib/format";
  * @param {object} props.ride - the completed ride (driver, fare, route)
  * @param {(stars:number) => void} props.onSubmit - rateRide(stars)
  * @param {() => void} props.onSkip - dismiss without rating (resets the flow)
+ * @param {'driver'|'rider'} [props.counterpart='driver'] - who is being rated;
+ *   drives the avatar + copy. Defaults to the driver (rider rating their driver).
  */
 
-const COMPLIMENTS = [
-  { label: "Great driving", stars: 5 },
-  { label: "Super clean car", stars: 5 },
-  { label: "On time", stars: 5 },
-  { label: "Friendly", stars: 5 },
-];
+const COMPLIMENTS = {
+  driver: [
+    { label: "Great driving", stars: 5 },
+    { label: "Super clean car", stars: 5 },
+    { label: "On time", stars: 5 },
+    { label: "Friendly", stars: 5 },
+  ],
+  rider: [
+    { label: "Polite", stars: 5 },
+    { label: "Ready on time", stars: 5 },
+    { label: "Great company", stars: 5 },
+    { label: "Easy pickup", stars: 5 },
+  ],
+};
 
-export default function RatingModal({ open, ride, onSubmit, onSkip }) {
+export default function RatingModal({ open, ride, onSubmit, onSkip, counterpart = "driver" }) {
   const [stars, setStars] = useState(0);
   const [tags, setTags] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -44,8 +55,11 @@ export default function RatingModal({ open, ride, onSubmit, onSkip }) {
 
   if (!open || !ride) return null;
 
-  const driver = ride.driver || {};
-  const driverName = fullNameOf(driver.fullname) || "your driver";
+  // Rate the counterpart: a rider rates the driver; a driver rates the rider.
+  const person = (counterpart === "rider" ? ride.rider : ride.driver) || {};
+  const fallbackName = counterpart === "rider" ? "your rider" : "your driver";
+  const personName = fullNameOf(person.fullname) || fallbackName;
+  const avatarFallback = counterpart === "rider" ? "R" : "D";
 
   const toggleTag = (label) => {
     setTags((prev) => (prev.includes(label) ? prev.filter((t) => t !== label) : [...prev, label]));
@@ -67,14 +81,18 @@ export default function RatingModal({ open, ride, onSubmit, onSkip }) {
         className="relative w-full max-w-sm rounded-2xl border border-line bg-paper p-6 text-center sw-animate-scale-in"
         style={{ boxShadow: "var(--shadow-pop)" }}
       >
-        {/* Driver avatar */}
-        <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-charcoal text-2xl font-bold text-paper">
-          {(driver.fullname?.firstname || "D").charAt(0).toUpperCase()}
-        </span>
+        {/* Counterpart avatar */}
+        <Avatar
+          name={personName === fallbackName ? "" : personName}
+          fallback={avatarFallback}
+          size="xl"
+          ring="amber"
+          className="mx-auto"
+        />
 
         <h2 className="mt-3 text-xl font-black text-charcoal">Rate your trip</h2>
         <p className="mt-1 text-sm text-slate-muted">
-          How was your ride with {driverName}?
+          How was your {counterpart === "rider" ? "rider" : "ride"} with {personName}?
         </p>
 
         {/* Trip recap */}
@@ -92,7 +110,7 @@ export default function RatingModal({ open, ride, onSubmit, onSkip }) {
         {/* Compliment chips (appear once a rating is chosen) */}
         {stars >= 4 && (
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {COMPLIMENTS.map((c) => {
+            {(COMPLIMENTS[counterpart] || COMPLIMENTS.driver).map((c) => {
               const on = tags.includes(c.label);
               return (
                 <button

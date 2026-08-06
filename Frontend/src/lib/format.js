@@ -81,3 +81,28 @@ export function formatCountdown(seconds) {
   const r = s % 60;
   return `${m}:${String(r).padStart(2, "0")}`;
 }
+
+/**
+ * Normalise a ride "place" (pickup/dropoff) into `{ lat, lng }`.
+ *
+ * Booking inputs carry flat `{ lat, lng }`, but a *persisted* ride stores each
+ * endpoint as GeoJSON `{ address, location: { coordinates: [lng, lat] } }`.
+ * This reads whichever shape is present so the map gets real coordinates in
+ * both cases (the driver dashboard only ever has the persisted shape).
+ *
+ * @param {object|null} place
+ * @returns {{lat:number, lng:number}|null}
+ */
+export function coordsOf(place) {
+  if (!place) return null;
+  // Flat booking shape.
+  if (Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
+    return { lat: place.lat, lng: place.lng };
+  }
+  // Persisted GeoJSON shape: coordinates are [lng, lat].
+  const c = place.location?.coordinates;
+  if (Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
+    return { lat: c[1], lng: c[0] };
+  }
+  return null;
+}

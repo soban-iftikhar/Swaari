@@ -12,6 +12,7 @@ import errorHandler from "./middlewares/errorHandler.js";
 import riderRoutes from "./routes/riderRoutes.js";
 import driverRoutes from "./routes/driverRoutes.js";
 import rideRoutes from "./routes/rideRoutes.js";
+import mapsRoutes from "./routes/mapsRoutes.js";
 
 /**
  * Application entrypoint.
@@ -53,6 +54,7 @@ import rideRoutes from "./routes/rideRoutes.js";
   app.use("/api/riders", riderRoutes);
   app.use("/api/drivers", driverRoutes);
   app.use("/api/rides", rideRoutes);
+  app.use("/api/maps", mapsRoutes);
 
   // ── 404 for unknown API routes ───────────────────────────
   app.use((req, res) => {

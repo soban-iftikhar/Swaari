@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { LogOut, Menu, Settings, User, IdCard } from "lucide-react";
+import { LogOut, Settings, User, IdCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { fullNameOf } from "../lib/format";
+import Brandmark from "../components/ui/Brandmark";
 
 /**
  * Header — the fixed top bar for the rider/driver dashboards.
@@ -44,12 +45,7 @@ export default function Header({ title }) {
     <header className="sticky top-0 z-40 border-b border-line bg-paper">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand */}
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-charcoal text-sm font-black text-amber">
-            S
-          </span>
-          <span className="text-lg font-black tracking-tight text-charcoal">Swaari</span>
-        </div>
+        <Brandmark />
 
         {/* Greeting (hidden on the smallest screens) */}
         <h3 className="hidden text-sm font-semibold text-slate-ink sm:block">{resolvedTitle}</h3>

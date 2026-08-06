@@ -1,10 +1,9 @@
-import crypto from "crypto";
 import mongoose from "mongoose";
 import Ride, { RIDE_STATUS } from "../models/Ride.js";
 import Bid, { BID_STATUS } from "../models/Bid.js";
-import Driver, { VEHICLE_TIER_BY_TYPE } from "../models/Driver.js";
+import Driver from "../models/Driver.js";
 import Rider from "../models/Rider.js";
-import { estimateFare, getRouteMetrics } from "./mapsService.js";
+import { estimateFare, getRouteMetrics, haversineMeters, VEHICLE_TYPES } from "./mapsService.js";
 import { emitToUser, emitToRide, emitToDrivers } from "../socket/io.js";
 import { EVENTS } from "../socket/events.js";
 

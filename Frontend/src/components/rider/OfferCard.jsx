@@ -1,6 +1,7 @@
 import { Star, Clock, Check, X } from "lucide-react";
 import { formatCurrency, fullNameOf } from "../../lib/format";
 import Button from "../ui/Button";
+import Avatar from "../ui/Avatar";
 
 /**
  * OfferCard — a single driver's bid in the offers list.
@@ -21,9 +22,7 @@ export default function OfferCard({ bid, onAccept, onReject, busy }) {
     <div className="rounded-xl border border-line bg-paper p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-charcoal text-base font-bold text-paper">
-            {(driver.fullname?.firstname || "D").charAt(0).toUpperCase()}
-          </span>
+          <Avatar name={fullNameOf(driver.fullname)} fallback="D" ring="amber" />
           <div>
             <p className="font-bold text-charcoal">{fullNameOf(driver.fullname) || "Driver"}</p>
             <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-muted">
